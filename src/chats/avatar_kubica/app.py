@@ -108,8 +108,6 @@ class MyPersonalAvatarApp:
         With this context, please chat with the user, always staying in character as {name}.
         Try to adopt your communication to {name} personality which is the following: {self.get_personality()}
         """
-
-        print(system_prompt)
         return system_prompt
 
     def start_chat(self):
