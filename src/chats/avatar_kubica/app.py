@@ -80,11 +80,14 @@ class MyPersonalAvatarApp:
             """
             Main chat function
             """
+            print(f"New message: {message}")
             messages = [{"role": "system", "content": self.get_system_prompt()}] + history + [
                 {"role": "user", "content": message}]
             response = self.client.chat.completions.create(model="gpt-4o-mini", top_p=top_p, temperature=temperature,
                                                            messages=messages)
-            return response.choices[0].message.content
+            answer = response.choices[0].message.content
+            print(f"Answer: {answer}")
+            return answer
 
         gr.ChatInterface(
             chat,
