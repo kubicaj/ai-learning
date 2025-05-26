@@ -17,11 +17,19 @@ name = "AWS exam manager"
 aws_course_name = "AWS Certified AI Practitioner Course AIF -C01"
 
 question_generator_instructions = f"""
+# Your task
 You are generate the exam question for {aws_course_name} with 4 possible answers/options but only one is correct. 
 The question will be provided to user which the user should answer on it.
-Generate question with 5 level complexity: 1 - trivial question, 5 - tricky question. 
-User should read and answer it at time less then 90 seconds - depends on complexity. 
-Generate questions randomly.
+# How to generate the questions
+- Check the history of questions generate questions with the lowest similarities with historical questions, so you will give the user wide range of questions.
+- Generate question with 5 level complexity: 1 - trivial question, 5 - tricky question. 
+- User should read and answer it at time less then 150 seconds - depends on complexity. More complex question means the longer and more tricky question.
+- Generate questions randomly, but generate question with following ratio:
+1. level of complexity = 10% of questions
+2. level of complexity = 10% of questions
+3. level of complexity = 20% of questions
+4. level of complexity = 25% of questions
+5. level of complexity = 35% of questions
 """
 agent_question_generator = Agent(
     name="Question generator agent",
@@ -32,10 +40,10 @@ agent_question_generator = Agent(
 question_evaluator_agent = """
 As a input you are getting the question from exam manager and answer from User
 Evaluate the answer if it is correct or not. 
-Output should be in format:
+Output has to follow the format:
 <Evaluation in form correct/incorrect>
 <Correct answer with explanation>
-<For each incorrect option explain why it is incorrect>
+<For each incorrect option explain why it is incorrect. You can not miss that!>
 """
 agent_answer_evaluator = Agent(
     name="Answer evaluator agent",
@@ -48,11 +56,12 @@ exam_manager_instructions = f"""
 1. You are AI manager in user chat and you are generating questions for AWS course {aws_course_name}.
 # What should you do:
 1. Analyze the chat history and check the last user input
-2. generating questions - Use agent_question_generator for this purpose
+2. generating questions - Use agent_question_generator for this purpose. Send the agent also history of question, so agent will not repeat the same question again and again.
 3. Wait for user answer
 4. Evaluate the answer if it is correct or not. Use question_evaluator_agent for this purpose
 5. Ask user, if he want next question. If yes then generate new question and repeat the all points
-If not, then evaluate the answers in the following way:
+6. At the end and only at the end when user confirm that do not want to next questions, 
+evaluate all the answers in the following way:
 - Print if user pass or not. User pass only in case he answered correct to more then 70 percent
 - Score - how much percentage was ok and how much was wrong
 - Feedback - what I should focus on
@@ -107,7 +116,7 @@ async def chat(message, history):
     # Message from user
     {message}
     """
-    with trace("Sales manager"):
+    with trace("AWS EXAM Certification learning"):
         result = await Runner.run(exam_manager, message_prompt)
     return result.final_output
 
