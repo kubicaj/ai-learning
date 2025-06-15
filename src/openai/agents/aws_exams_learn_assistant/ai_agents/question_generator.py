@@ -1,7 +1,7 @@
 from agents import Agent
 from pydantic import BaseModel
 
-from src.common.pdf_utils import get_pdf_content
+from src.openai.common.pdf_utils import get_pdf_content
 
 
 class QuestionFormat(BaseModel):

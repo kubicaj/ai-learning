@@ -1,9 +1,7 @@
-from dotenv import load_dotenv
-from openai import OpenAI
 import gradio as gr
 
-from src.common.open_api_utils import get_open_ai_client
-from src.common.pdf_utils import get_pdf_content
+from src.openai.common.open_api_utils import get_open_ai_client
+from src.openai.common.pdf_utils import get_pdf_content
 
 client = get_open_ai_client()
 cv_content = get_pdf_content("../avatar_kubica/resources/fastapi_tutorial.pdf")

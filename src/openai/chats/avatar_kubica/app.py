@@ -8,6 +8,8 @@ from pypdf import PdfReader
 import logging
 import sys
 
+from src.openai.common.logger import init_logger
+
 
 class MyPersonalAvatarApp:
     """
@@ -15,21 +17,9 @@ class MyPersonalAvatarApp:
     """
 
     def __init__(self):
-        self.logger = self.init_logger()
+        self.logger = init_logger()
         self.client = self.get_open_ai_client()
         self.cv_content = self.get_pdf_content("resources/CV_Juraj_Kubica.pdf")
-
-    @staticmethod
-    def init_logger():
-        logging.basicConfig(
-            level=logging.INFO,
-            format='[%(asctime)s][%(name)s] %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S',
-            stream=sys.stdout
-        )
-        logging.getLogger("openai").setLevel(logging.WARNING)
-        logging.getLogger("httpx").setLevel(logging.WARNING)
-        return logging.getLogger()
 
     @staticmethod
     def get_pdf_content(pdf_path: str) -> str:

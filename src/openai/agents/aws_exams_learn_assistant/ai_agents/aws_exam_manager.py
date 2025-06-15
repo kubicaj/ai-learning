@@ -1,8 +1,8 @@
 from agents import Agent
 
-from src.agents.aws_exams_learn_assistant.ai_agents.question_evaluator import QuestionEvaluator
-from src.agents.aws_exams_learn_assistant.ai_agents.question_generator import QuestionGenerator
-from src.agents.aws_exams_learn_assistant.tools import save_answers_into_user_profile
+from src.openai.agents.aws_exams_learn_assistant.ai_agents.question_evaluator import QuestionEvaluator
+from src.openai.agents.aws_exams_learn_assistant.ai_agents.question_generator import QuestionGenerator
+from src.openai.agents.aws_exams_learn_assistant.tools import save_answers_into_user_profile
 
 
 class AWSExamManager(Agent):

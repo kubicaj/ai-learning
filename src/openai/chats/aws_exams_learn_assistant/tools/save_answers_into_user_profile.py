@@ -1,6 +1,6 @@
 from typing import Any
 
-from src.chats.aws_exams_learn_assistant.tools.base_tool import AITool
+from src.openai.chats.aws_exams_learn_assistant.tools.base_tool import AITool
 
 
 class SaveAnswersIntoUserProfile(AITool):

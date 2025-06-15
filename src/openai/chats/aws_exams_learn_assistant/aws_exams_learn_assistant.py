@@ -1,13 +1,11 @@
 import json
 
-from dotenv import load_dotenv
-from openai import OpenAI
 import gradio as gr
 
-from src.chats.aws_exams_learn_assistant.tools.base_tool import AITool
-from src.chats.aws_exams_learn_assistant.tools.save_answers_into_user_profile import SaveAnswersIntoUserProfile
-from src.common.open_api_utils import get_open_ai_client
-from src.common.pdf_utils import get_pdf_content
+from src.openai.chats.aws_exams_learn_assistant.tools.base_tool import AITool
+from src.openai.chats.aws_exams_learn_assistant.tools.save_answers_into_user_profile import SaveAnswersIntoUserProfile
+from src.openai.common.open_api_utils import get_open_ai_client
+from src.openai.common.pdf_utils import get_pdf_content
 
 client = get_open_ai_client()
 cv_content = get_pdf_content("resources/AWS Certified AI Practitioner Course AIF -C01.pdf")

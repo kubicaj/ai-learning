@@ -2,7 +2,7 @@ from agents import Runner, trace
 from dotenv import load_dotenv
 import gradio as gr
 
-from src.agents.aws_exams_learn_assistant.ai_agents.aws_exam_manager import AWSExamManager
+from src.openai.agents.aws_exams_learn_assistant.ai_agents.aws_exam_manager import AWSExamManager
 
 load_dotenv(override=True)
 

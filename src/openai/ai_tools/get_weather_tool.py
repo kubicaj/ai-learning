@@ -1,8 +1,6 @@
 import json
 
-import requests
-
-from src.common.open_api_utils import get_open_ai_client
+from src.openai.common.open_api_utils import get_open_ai_client
 
 
 # inspiration https://platform.openai.com/docs/guides/function-calling?api-mode=responses
