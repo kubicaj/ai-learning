@@ -1,10 +1,8 @@
-import os
 import uuid
 import gradio as gr
 
 from typing import Annotated
 
-from langchain_core.tools import tool
 from langgraph.prebuilt import ToolNode, tools_condition
 from pydantic import BaseModel
 from IPython.display import Image, display
@@ -14,7 +12,7 @@ from langgraph.graph import StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.checkpoint.memory import MemorySaver
 from langchain.agents import Tool
-from langchain_community.utilities import GoogleSerperAPIWrapper, SerpAPIWrapper
+from langchain_community.utilities import GoogleSerperAPIWrapper
 from src.langgraph.llm.llm_factory import LLMFactory
 from src.openai.common.logger import init_logger
 
@@ -25,21 +23,13 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 load_dotenv(override=True)
 
 # create google search tool
-search = SerpAPIWrapper(serpapi_api_key=os.environ['SERPER_API_KEY'])
-
-@tool
-def internet_search(query: str) -> str:
-    """Searches the internet and returns the top result with its URL."""
-    results = search.run(query, num_results=1)
-    if not results or not results['organic_results']:
-        return "No results found."
-    top_result = results['organic_results'][0]
-    title = top_result.get('title', 'Unknown')
-    link = top_result.get('link', 'No link')
-    snippet = top_result.get('snippet', '')
-    return f"{title}: {snippet}\nSource: {link}"
-
-tools_list = [internet_search]
+serper = GoogleSerperAPIWrapper()
+tool_search = Tool(
+    name="search",
+    func=serper.run,
+    description="Useful for when you need more information from an online search"
+)
+tools_list = [tool_search]
 
 # create llm
 open_ai_llm = LLMFactory.get_chat_open_ai_llm()
