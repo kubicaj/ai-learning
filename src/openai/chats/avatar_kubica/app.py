@@ -5,9 +5,8 @@ import os
 from openai import OpenAI
 from dotenv import load_dotenv
 from pypdf import PdfReader
-import logging
-import sys
 
+from src.openai.chats.avatar_kubica.guardrails import Guardrails, ValidationError
 from src.openai.common.logger import init_logger
 
 
@@ -16,10 +15,30 @@ class MyPersonalAvatarApp:
     Class represent main Application class
     """
 
+    LLM_MODEL_TYPE = "gpt-4o-mini"
+
     def __init__(self):
         self.logger = init_logger()
         self.client = self.get_open_ai_client()
         self.cv_content = self.get_pdf_content("resources/CV_Juraj_Kubica.pdf")
+        self._guardrails = Guardrails(self.client, self.LLM_MODEL_TYPE, 500)
+
+    def get_open_ai_client(self) -> OpenAI:
+        """
+        Create new OPEN AI client
+
+        Return:
+            Open AI object instance
+        """
+        load_dotenv(override=True)
+        openai_api_key = os.getenv('OPENAI_API_KEY')
+
+        if openai_api_key:
+            self.logger.info(f"OpenAI API Key exists and begins {openai_api_key[:8]}")
+        else:
+            self.logger.info("OpenAI API Key not set - please head to the troubleshooting guide in the setup folder")
+
+        return OpenAI()
 
     @staticmethod
     def get_pdf_content(pdf_path: str) -> str:
@@ -40,25 +59,26 @@ class MyPersonalAvatarApp:
                 pdf_text += text
         return pdf_text
 
-    def get_open_ai_client(self) -> OpenAI:
-        load_dotenv(override=True)
-        openai_api_key = os.getenv('OPENAI_API_KEY')
-
-        if openai_api_key:
-            self.logger.info(f"OpenAI API Key exists and begins {openai_api_key[:8]}")
-        else:
-            self.logger.info("OpenAI API Key not set - please head to the troubleshooting guide in the setup folder")
-
-        return OpenAI()
-
     @staticmethod
-    def get_summary() -> str:
+    def get_avatar_role() -> str:
+        """
+        Create role of avatar
+
+        Return:
+            str representation of avatar role
+        """
         return (
             "My name is Juraj Kubica. I am software engineer, with a lot of experience with Data and system integration"
             "I like to learn new thinks about AI")
 
     @staticmethod
     def get_personality() -> str:
+        """
+        Describe user personality
+
+        Return:
+            str representation user personality
+        """
         return (
             "I'm an ambitious person, but I don't cross my moral boundaries. "
             "In case of conflicts, I try to explain to people reasonably what it is about and give proven arguments. I don't try to bring feelings into conflicts, which helps me distance myself."
@@ -66,6 +86,12 @@ class MyPersonalAvatarApp:
             "But when I communicate with someone close to me, I'm more of an extrovert")
 
     def get_system_prompt(self) -> str:
+        """
+        Create main system prompt
+
+        Return:
+            system prompt
+        """
         name = "Juraj Kubica"
         system_prompt = f"""
         ## What you should do
@@ -74,6 +100,19 @@ class MyPersonalAvatarApp:
         particularly questions related to {name}'s career, background, skills and experience. 
         Your responsibility is to represent {name} for interactions on the website as faithfully as possible. 
         You are given a summary of {name}'s background and CV which you can use to answer questions. 
+        
+        ## My preferred roles
+        I prefer the following roles:
+        - Senior Data engineer
+        - Data Architect
+        - Enterprise Architect
+        - Technical Lead
+        - AI engineer (I am very eager to learn all new about AI and I am training and learning daily about this area)
+        - AWS cloud engineer
+        - AWS cloud Architect
+        
+        But in general I am open to whatever IT technical role which will involve me into new technologies enhance my 
+        knowledge and mainly to the role which will bring value to customer  
         
         ## Rules how to behave 
         
@@ -87,7 +126,7 @@ class MyPersonalAvatarApp:
         
         ## Summary:
         
-        {self.get_summary()}
+        {self.get_avatar_role()}
         
         ## CV:
         
@@ -105,14 +144,36 @@ class MyPersonalAvatarApp:
         Main chat function
         """
 
-        def start_session():
+        def generate_session_id() -> str:
+            """
+            Method create new uuid which represent session ID
+            """
             return str(uuid.uuid4())
 
-        def chat(message, history, top_p: float, temperature: float, session_id: str):
+        def chat(message, history, top_p: float, temperature: float, session_id: str) -> str:
+            """
+            Main chat message which is call each time user send input
+
+            Args:
+                message - user input
+                history - history of chat
+                top_p - top P parameter for LLM
+                temperature - temperature parameter for LLM
+                session_id - id of session
+            """
+
             self.logger.info(f"[{session_id}] New message: {message}")
+            # validate message first
+            try:
+                self._guardrails.validate(message)
+            except ValidationError as validation_error:
+                return str(validation_error)
+
+            # continue if message is valid
             messages = [{"role": "system", "content": self.get_system_prompt()}] + history + [
                 {"role": "user", "content": message}]
-            response = self.client.chat.completions.create(model="gpt-4o-mini", top_p=top_p, temperature=temperature,
+            response = self.client.chat.completions.create(model=self.LLM_MODEL_TYPE, top_p=top_p,
+                                                           temperature=temperature,
                                                            messages=messages)
             answer = response.choices[0].message.content
             self.logger.info(f"[{session_id}] Answer: {answer}")
@@ -146,7 +207,7 @@ class MyPersonalAvatarApp:
                     gr.Slider(
                         0.0, 2.0, label="temperature", value=0.5, render=False,
                         info="The temperature of the model. Increasing the temperature will make the model answer more creatively. (Default: 0.5)"),
-                    gr.State(start_session())
+                    gr.State(generate_session_id())
                 ],
                 title=None,
                 submit_btn="⬅ Send"
