@@ -101,15 +101,14 @@ class MyPersonalAvatarApp:
         return system_prompt
 
     def start_chat(self):
+        """
+        Main chat function
+        """
 
         def start_session():
             return str(uuid.uuid4())
 
-        # define chat function
         def chat(message, history, top_p: float, temperature: float, session_id: str):
-            """
-            Main chat function
-            """
             self.logger.info(f"[{session_id}] New message: {message}")
             messages = [{"role": "system", "content": self.get_system_prompt()}] + history + [
                 {"role": "user", "content": message}]
@@ -119,20 +118,42 @@ class MyPersonalAvatarApp:
             self.logger.info(f"[{session_id}] Answer: {answer}")
             return answer
 
-        gr.ChatInterface(
-            chat,
-            type="messages",
-            additional_inputs=[
-                gr.Slider(0.0, 1.0, label="top_p", value=0.3,
-                          info=" Works together with top-k. A higher value (e.g., 0.95) will lead to more diverse text, while a lower value (e.g., 0.5) will generate more focused and conservative text. (Default: 0.3)"),
-                gr.Slider(0.0, 2.0, label="temperature", value=0.5,
-                          info="The temperature of the model. Increasing the temperature will make the model answer more creatively. (Default: 0.5)"),
-                gr.State(start_session())
-            ],
-            title="Welcome 👋. I am Juraj Kubica's avatar. Ask me anything about my professional life.",
-            theme=gr.themes.Ocean(),
-            submit_btn="⬅ Send"
-        ).launch()
+        # Contact info HTML (customize as needed)
+        CONTACTS = """
+        <h3>Contact Juraj Kubica</h3>
+        <ul style="font-size:16px;">
+          <li>📧 <b>Email:</b> <a href="mailto:kubica.juro@gmail.com">kubica.juro@gmail.com</a></li>
+          <li>🌐 <b>LinkedIn:</b> <a href="https://www.linkedin.com/in/juraj-kubica-897a3590" target="_blank">https://www.linkedin.com/in/juraj-kubica-897a3590</a></li>
+          <li>📱 <b>Phone:</b> +420 601 121 964</li>
+        </ul>
+        """
+
+        with gr.Blocks(theme=gr.themes.Ocean()) as cv_app:
+            gr.Markdown(
+                "# 👨‍💻 Welcome! I'm Juraj Kubica's Avatar\n\nAsk me anything about my professional journey below. If you'd like, download my CV or contact me directly!")
+            with gr.Row():
+                gr.HTML(CONTACTS)
+                gr.File(value="resources/CV_Juraj_Kubica.pdf", label="Download CV 📄", interactive=True)
+            gr.Markdown("---")
+
+            gr.ChatInterface(
+                chat,
+                type="messages",
+                additional_inputs=[
+                    gr.Slider(
+                        0.0, 1.0, label="top_p", value=0.3, render=False,
+                        info="Works together with top-k. A higher value (e.g., 0.95) will lead to more diverse text, while a lower value (e.g., 0.5) will generate more focused and conservative text. (Default: 0.3)"),
+                    gr.Slider(
+                        0.0, 2.0, label="temperature", value=0.5, render=False,
+                        info="The temperature of the model. Increasing the temperature will make the model answer more creatively. (Default: 0.5)"),
+                    gr.State(start_session())
+                ],
+                title=None,
+                submit_btn="⬅ Send"
+                # input_components and additional_inputs will render below the chat area by default
+            )
+
+        cv_app.launch()
 
 
 if __name__ == '__main__':
