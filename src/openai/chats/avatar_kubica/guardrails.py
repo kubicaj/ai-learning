@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from openai import OpenAI
 from pydantic import BaseModel
 
@@ -13,8 +15,8 @@ class ExpressiveTermEvalOutput(BaseModel):
     """
     Structure output of System Content Controller
     """
-    is_answer_appropriate: bool
-    answer_explanation: str
+    is_message_appropriate: Annotated[bool, "Flag indicates if the message is appropriate (=True) or not (=False)"]
+    answer_explanation: Annotated[str, "Explanation why the message is or is not appropriate"]
 
 
 class Guardrails:
@@ -95,5 +97,5 @@ class Guardrails:
             messages=messages,
             response_format=ExpressiveTermEvalOutput
         )
-        if not response.choices[0].message.parsed.is_answer_appropriate:
+        if not response.choices[0].message.parsed.is_message_appropriate:
             raise ValidationError(f"{response.choices[0].message.parsed.answer_explanation}")

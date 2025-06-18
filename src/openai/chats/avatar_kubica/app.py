@@ -200,6 +200,7 @@ class MyPersonalAvatarApp:
             gr.ChatInterface(
                 chat,
                 type="messages",
+                show_progress = "full",
                 additional_inputs=[
                     gr.Slider(
                         0.0, 1.0, label="top_p", value=0.3, render=False,
@@ -211,7 +212,6 @@ class MyPersonalAvatarApp:
                 ],
                 title=None,
                 submit_btn="⬅ Send"
-                # input_components and additional_inputs will render below the chat area by default
             )
 
         cv_app.launch()
