@@ -163,10 +163,13 @@ class MyPersonalAvatarApp:
             """
 
             self.logger.info(f"[{session_id}] New message: {message}")
-            # validate message first
+            # reduce history first. Limit is set up to 30 so it means 15 questions and 15 answers
+            history = self._guardrails.reduce_history(history, max_size_history=30)
+            # validate message
             try:
                 self._guardrails.validate(message)
             except ValidationError as validation_error:
+                self.logger.error(f"[{session_id}] Validation error: {str(validation_error)}")
                 return str(validation_error)
 
             # continue if message is valid

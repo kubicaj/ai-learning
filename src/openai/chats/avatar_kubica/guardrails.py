@@ -29,7 +29,24 @@ class Guardrails:
         self._llm_model_type = llm_model_type
         self._max_message_length = max_message_length
 
-    def validate(self, user_input_message):
+    @staticmethod
+    def reduce_history(history: list[dict], max_size_history: int = 25) -> list[dict]:
+        """
+        In order to save cost and prevet overlapping of contex, do not allow the history to be bigger than
+        max_size_history arg
+
+        Args:
+            history - history list
+            user_input_message - max size of history
+
+        Return:
+            Reduced history
+        """
+        if history and len(history) > max_size_history:
+            return history[max_size_history:]
+        return history
+
+    def validate(self, user_input_message: str):
         """
         Main validator message
         Args:
@@ -60,7 +77,7 @@ class Guardrails:
         if len(user_input_message) > self._max_message_length:
             raise ValidationError(f"Message is bigger then {self._max_message_length}. Please reduce user input")
 
-    def _validate_expressive_terms(self, user_input_message):
+    def _validate_expressive_terms(self, user_input_message: str):
         """
         Validate if user input contains some expressive terms
 
