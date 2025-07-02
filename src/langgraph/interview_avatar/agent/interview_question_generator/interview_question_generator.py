@@ -1,6 +1,6 @@
 from typing import List
 
-from langchain_core.messages import SystemMessage, BaseMessage, AIMessage
+from langchain_core.messages import SystemMessage, BaseMessage, AIMessage, HumanMessage
 
 from src.langgraph.interview_avatar.agent.interview_agent import InterviewAgent
 from src.langgraph.interview_avatar.pojo.graph_state import GraphState
@@ -39,58 +39,73 @@ class InterviewQuestionGenerator(InterviewAgent):
             SystemMessage with prompt
         """
         self.logger.debug("Create interview generator prompt...")
-        system_prompt_to_question_generation = (
-            f"""
+        # find last user message. Loop from the end because there are last queries from user
+        user_query = None
+        for message in graph_state.messages[::-1]:
+            if isinstance(message, HumanMessage):
+                user_query = message.content
+                break
+        # if there is nno user query then generate the question
+        if not user_query:
+            system_prompt = (
+                f"""
+                # Your role
+                You are the Technical consultant which help during interview 
+                
+                # Your task
+                - Generate  only one interview question 
+                
+                ## Rules, how to generate the question
+                - Question has to be relevant to seniority of the role, which you can find in section `Position description`
+                - Generate only and only one question
+                - generate question which is type of {graph_state.generate_type_of_question.value}
+                
+                # Areas to interview
+                - SQL
+                - pyspark
+                - databricks
+                - AWS
+                - Data engineering
+                - Data architecture
+                
+                # Output structure
+                
+                The output of your answer HAVE TO BE formated as following:
+                
+                # Position description
+                
+                {POSITION_DESCRIPTION}
+                
+                ```text
+                  
+                ## Answer to user question
+                
+                - Add some additional notes here in case the user has some query. Do not fill this section in case the user has no questions
+                - In case user has no additional queries leave this section blank
+                
+                ## Interview Question
+                
+                ### Question
+                
+                <Your generated question>
+                
+                ### Possible answers
+                
+                <Can be one or more acceptable answer for your generated question>
+                ```
+                
+                """
+            )
+        else:
+            system_prompt = """
             # Your role
             You are the Technical consultant which help during interview 
             
             # Your task
-            - Generate  only one interview question and also the relevant and description answer for generating 
-            question for the position describe bellow in section `Position description` or answer to user question
-            - You can change/update previously generated question in case it is needed because the answer from the user
-            
-            ## Rules, how to generate the question
-            - Question has to be relevant to seniority of the role, which you can find in section `Position description`
-            - Generate only and only one question
-            - generate question which is type of {graph_state.generate_type_of_question.value}
-            
-            ## Rules, how to answer to user queries
-            - Try to answer to question which is related with your last generated question
-            - Answer should be precisely and should not be related with other topic which is out of the interview.
-            
-            # Output structure
-            The output of your answer HAVE TO BE formated as following:
-            ```text
-              
-            ## Answer to user question
-            - Add some additional notes here in case the user has some query. Do not fill this section in case the user has no questions
-            - In case user has no additional queries leave this section blank
-            
-            ## Interview Question
-            
-            ### Question
-            <Your generated question>
-            
-            ### Possible answers
-            <Can be one or more acceptable answer for your generated question>
-            ```
-            # User question
-            {graph_state.messages[0].content}
-            
-            # Areas to interview
-            - SQL
-            - pyspark
-            - databricks
-            - AWS
-            - Data engineering
-            - Data architecture
-            
-            # Position description
-            
-            {POSITION_DESCRIPTION}
+            - Answer user to query. Take into account your previously generated question 
+            - Do not generate new question. Only answer the user question
             """
-        )
-        return graph_state.messages + [SystemMessage(content=system_prompt_to_question_generation)]
+        return graph_state.messages + [SystemMessage(content=system_prompt)]
 
     def agent_callback(self, graph_state: GraphState) -> GraphState:
         """
