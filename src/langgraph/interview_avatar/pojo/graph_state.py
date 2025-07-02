@@ -12,3 +12,4 @@ class GraphState(BaseModel):
     """
     messages: Annotated[List[Any], add_messages]
     generate_type_of_question: Annotated[QuestionTypes, "Type of question which needs to be generated"]
+    generated_question: Annotated[str, "Generated question"] = None

@@ -1,6 +1,9 @@
+import sqlite3
 from abc import ABC, abstractmethod
-from typing import Any, List
+from typing import Any, List, Tuple
 
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.constants import START, END
 from langgraph.graph import StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
@@ -31,7 +34,9 @@ class InterviewAgent(ABC):
             tool_search_for_interview
         ]
 
-    def call_as_standalone(self, initial_state: GraphState):
+    def call_as_standalone(self, initial_state: GraphState, memory_id: str = "1",
+                           compiled_state_graph: StateGraph = None) -> Tuple[
+        Any, StateGraph]:
         """
         Call the agent as a standalone app.
         It can be used for testing/debuting purpose
@@ -58,8 +63,24 @@ class InterviewAgent(ABC):
         # //////////////// Compile the Graph ////////////////
 
         # Compile the graph
-        graph = graph_builder.compile()
+        graph_config = {}
+        if not compiled_state_graph:
+            if memory_id:
+                compiled_state_graph = graph_builder.compile(checkpointer=MemorySaver())
+            else:
+                compiled_state_graph = graph_builder.compile()
+
+        if memory_id:
+            graph_config = {
+                "configurable": {
+                    "thread_id": memory_id
+                }
+            }
+        # //////////////// Create memory if memory id is setup ////////////////
 
         # //////////////// Invoke the Graph ////////////////
-        result = graph.invoke(initial_state)
-        return result
+        result = compiled_state_graph.invoke(
+            initial_state,
+            config=graph_config
+        )
+        return result, compiled_state_graph
