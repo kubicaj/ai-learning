@@ -28,7 +28,7 @@ class InterviewQuestionGenerator(InterviewAgent):
     Agent will also provide the best answer for the question
     """
 
-    def _create_interview_generator_prompt(self, graph_state: GraphState) -> List[BaseMessage]:
+    def _create_interview_generator_prompt(self, graph_state: GraphState, user_query: str) -> List[BaseMessage]:
         """
         Create interview generator prompt
 
@@ -39,12 +39,6 @@ class InterviewQuestionGenerator(InterviewAgent):
             SystemMessage with prompt
         """
         self.logger.debug("Create interview generator prompt...")
-        # find last user message. Loop from the end because there are last queries from user
-        user_query = None
-        for message in graph_state.messages[::-1]:
-            if isinstance(message, HumanMessage):
-                user_query = message.content
-                break
         # if there is nno user query then generate the question
         if not user_query:
             system_prompt = (
@@ -59,6 +53,11 @@ class InterviewQuestionGenerator(InterviewAgent):
                 - Question has to be relevant to seniority of the role, which you can find in section `Position description`
                 - Generate only and only one question
                 - generate question which is type of {graph_state.generate_type_of_question.value}
+                - You have to follow the instructions from interview manager. The instructions from interview manager has priority
+                
+                # Additional instruction from interview manager
+                
+                {graph_state.interview_manager_instructions}
                 
                 # Areas to interview
                 - SQL
@@ -68,32 +67,27 @@ class InterviewQuestionGenerator(InterviewAgent):
                 - Data engineering
                 - Data architecture
                 
-                # Output structure
-                
-                The output of your answer HAVE TO BE formated as following:
-                
+            
                 # Position description
                 
                 {POSITION_DESCRIPTION}
                 
+                # Output structure
+                
+                The output of your answer HAVE TO BE formated as following:
+                
                 ```text
-                  
-                ## Answer to user question
+                # Interview Question
                 
-                - Add some additional notes here in case the user has some query. Do not fill this section in case the user has no questions
-                - In case user has no additional queries leave this section blank
-                
-                ## Interview Question
-                
-                ### Question
-                
+                ## Question
                 <Your generated question>
                 
-                ### Possible answers
-                
+                ## Possible answers
                 <Can be one or more acceptable answer for your generated question>
-                ```
                 
+                ## Question note
+                - Add some additional notes here. For example what is expected output, what do you expect user will do etc
+                ```
                 """
             )
         else:
@@ -115,14 +109,31 @@ class InterviewQuestionGenerator(InterviewAgent):
         # create and invoke LLM agent
         open_ai_llm = LLMFactory.get_chat_open_ai_llm()
         llm_with_tools = open_ai_llm.bind_tools(self.get_tools())
-        response = llm_with_tools.invoke(input=self._create_interview_generator_prompt(graph_state))
-        generated_question = ""
+
+        # find last user message. Loop from the end because there are last queries from user
+        user_query = None
+        for message in graph_state.messages[::-1]:
+            if isinstance(message, HumanMessage):
+                user_query = message.content
+                break
+
+        response = llm_with_tools.invoke(input=self._create_interview_generator_prompt(graph_state, user_query))
+
+        # save the previous generated question
+        generated_question = graph_state.generated_question
+        user_query_answer = ""
         if isinstance(response, AIMessage) and not response.tool_calls:
-            generated_question = response.content
+            if user_query:
+                user_query_answer = response.content
+            else:
+                generated_question = response.content
+
         new_state = GraphState(
             messages=[response],
             generate_type_of_question=graph_state.generate_type_of_question,
-            generated_question=generated_question
+            generated_question=generated_question,
+            user_query_answer=user_query_answer,
+            interview_manager_instructions=graph_state.interview_manager_instructions
         )
         # process response
         return new_state
@@ -130,7 +141,7 @@ class InterviewQuestionGenerator(InterviewAgent):
 
 if __name__ == '__main__':
     compiled_state_graph = None
-    for i in range(0, 4):
+    for i in range(0, 1):
         print(f"======================= ITERATION {i} ======================= \n")
         user_contents = [
             "",
@@ -141,10 +152,14 @@ if __name__ == '__main__':
         print(f"User query: {user_contents[i]} \n")
         graph_state = GraphState(
             messages=[{"role": "user", "content": user_contents[i]}],
-            generate_type_of_question=QuestionTypes.LIVE_CODING_QUESTION
+            generate_type_of_question=QuestionTypes.TECHNICAL_QUESTION,
+            interview_manager_instructions="Give me some simple question about Databricks"
         )
         result, compiled_state_graph = InterviewQuestionGenerator().call_as_standalone(
             graph_state,
-            compiled_state_graph=compiled_state_graph)
+            compiled_state_graph=compiled_state_graph,
+            memory_id="1"
+        )
         print(compiled_state_graph)
-        print(result['generated_question'])
+        print(f"QUESTION {result['generated_question']}")
+        print(f"USER ANSWER: {result['user_query_answer']}")

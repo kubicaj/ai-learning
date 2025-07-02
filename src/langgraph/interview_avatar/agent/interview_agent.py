@@ -34,7 +34,7 @@ class InterviewAgent(ABC):
             tool_search_for_interview
         ]
 
-    def call_as_standalone(self, initial_state: GraphState, memory_id: str = "1",
+    def call_as_standalone(self, initial_state: GraphState, memory_id: str = None,
                            compiled_state_graph: StateGraph = None) -> Tuple[
         Any, StateGraph]:
         """
