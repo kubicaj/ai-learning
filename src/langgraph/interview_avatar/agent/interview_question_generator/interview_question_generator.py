@@ -2,24 +2,12 @@ from typing import List
 
 from langchain_core.messages import SystemMessage, BaseMessage, AIMessage, HumanMessage
 
-from src.langgraph.interview_avatar.agent.interview_agent import InterviewAgent
+from src.langgraph.interview_avatar.agent.interview_agent import InterviewAgent, POSITION_DESCRIPTION, \
+    TOPICS_TO_INTERVIEW
 from src.langgraph.interview_avatar.pojo.graph_state import GraphState
 from src.langgraph.interview_avatar.types.question_types import QuestionTypes
 from src.langgraph.llm.llm_factory import LLMFactory
 
-
-def _load_position_description() -> str:
-    """
-    Load position description
-
-    Return:
-        str representation of position desc
-    """
-    with open('resources/position_description.md', 'r') as file:
-        return file.read()
-
-
-POSITION_DESCRIPTION = _load_position_description()
 
 
 class InterviewQuestionGenerator(InterviewAgent):
@@ -28,7 +16,15 @@ class InterviewQuestionGenerator(InterviewAgent):
     Agent will also provide the best answer for the question
     """
 
-    def _create_interview_generator_prompt(self, graph_state: GraphState, user_query: str) -> List[BaseMessage]:
+    @staticmethod
+    def get_prompt_names() -> list[str]:
+        """
+        Overwrite default prompt names
+        """
+        # default is agent prompt
+        return ["question_generator_prompt", "user_query_prompt"]
+
+    def _create_interview_generator_prompt(self, interview_state: GraphState, user_query: str) -> List[BaseMessage]:
         """
         Create interview generator prompt
 
@@ -41,67 +37,19 @@ class InterviewQuestionGenerator(InterviewAgent):
         self.logger.debug("Create interview generator prompt...")
         # if there is nno user query then generate the question
         if not user_query:
-            system_prompt = (
-                f"""
-                # Your role
-                You are the Technical consultant which help during interview 
-                
-                # Your task
-                - Generate  only one interview question 
-                
-                ## Rules, how to generate the question
-                - Question has to be relevant to seniority of the role, which you can find in section `Position description`
-                - Generate only and only one question
-                - generate question which is type of {graph_state.generate_type_of_question.value}
-                - You have to follow the instructions from interview manager. The instructions from interview manager has priority
-                
-                # Additional instruction from interview manager
-                
-                {graph_state.interview_manager_instructions}
-                
-                # Areas to interview
-                - SQL
-                - pyspark
-                - databricks
-                - AWS
-                - Data engineering
-                - Data architecture
-                
-            
-                # Position description
-                
-                {POSITION_DESCRIPTION}
-                
-                # Output structure
-                
-                The output of your answer HAVE TO BE formated as following:
-                
-                ```text
-                # Interview Question
-                
-                ## Question
-                <Your generated question>
-                
-                ## Possible answers
-                <Can be one or more acceptable answer for your generated question>
-                
-                ## Question note
-                - Add some additional notes here. For example what is expected output, what do you expect user will do etc
-                ```
-                """
+            system_prompt = self.agent_prompt_templates["question_generator_prompt"].format(
+                **{
+                    "generate_type_of_question": interview_state.generate_type_of_question.value,
+                    "position_description": POSITION_DESCRIPTION,
+                    "interview_manager_instructions": interview_state.interview_manager_instructions,
+                    "topics_to_interview": TOPICS_TO_INTERVIEW
+                }
             )
         else:
-            system_prompt = """
-            # Your role
-            You are the Technical consultant which help during interview 
-            
-            # Your task
-            - Answer user to query. Take into account your previously generated question 
-            - Do not generate new question. Only answer the user question
-            """
-        return graph_state.messages + [SystemMessage(content=system_prompt)]
+            system_prompt = self.agent_prompt_templates["user_query_prompt"]
+        return interview_state.messages + [SystemMessage(content=system_prompt)]
 
-    def agent_callback(self, graph_state: GraphState) -> GraphState:
+    def agent_callback(self, interview_state: GraphState) -> GraphState:
         """
         Agent callback method. More info see InterviewAgent.agent_callback
         """
@@ -112,15 +60,15 @@ class InterviewQuestionGenerator(InterviewAgent):
 
         # find last user message. Loop from the end because there are last queries from user
         user_query = None
-        for message in graph_state.messages[::-1]:
+        for message in interview_state.messages[::-1]:
             if isinstance(message, HumanMessage):
                 user_query = message.content
                 break
 
-        response = llm_with_tools.invoke(input=self._create_interview_generator_prompt(graph_state, user_query))
+        response = llm_with_tools.invoke(input=self._create_interview_generator_prompt(interview_state, user_query))
 
         # save the previous generated question
-        generated_question = graph_state.generated_question
+        generated_question = interview_state.generated_question
         user_query_answer = ""
         if isinstance(response, AIMessage) and not response.tool_calls:
             if user_query:
@@ -130,10 +78,10 @@ class InterviewQuestionGenerator(InterviewAgent):
 
         new_state = GraphState(
             messages=[response],
-            generate_type_of_question=graph_state.generate_type_of_question,
+            generate_type_of_question=interview_state.generate_type_of_question,
             generated_question=generated_question,
             user_query_answer=user_query_answer,
-            interview_manager_instructions=graph_state.interview_manager_instructions
+            interview_manager_instructions=interview_state.interview_manager_instructions
         )
         # process response
         return new_state

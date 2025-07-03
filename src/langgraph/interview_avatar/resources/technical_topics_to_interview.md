@@ -1,0 +1,6 @@
+- SQL
+- pyspark
+- databricks
+- AWS
+- Data engineering
+- Data architecture
