@@ -24,7 +24,7 @@ class LLMFactory:
         Return:
             ChatOpenAI instance
         """
-        # you can use regular OpenAI SDK but because we are in LangGrpah ecosystem then it is better to show how to call
+        # you can use regular OpenAI SDK but because we are in LangGraph ecosystem then it is better to show how to call
         # OpenAI llm using LangChain libraries
         global _chat_open_ai_model
         if not _chat_open_ai_model:

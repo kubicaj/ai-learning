@@ -3,7 +3,7 @@ from langchain_core.messages import SystemMessage, BaseMessage, AIMessage
 
 from src.langgraph.interview_avatar.agent.interview_agent import InterviewAgent
 from src.langgraph.interview_avatar.pojo.graph_state import GraphState
-from src.langgraph.interview_avatar.types.question_types import QuestionTypes
+from src.langgraph.interview_avatar.custom_types.question_types import QuestionTypes
 from src.langgraph.llm.llm_factory import LLMFactory
 
 
@@ -11,6 +11,8 @@ class InterviewQuestionEvaluator(InterviewAgent):
     """
     Agent responsible for evaluating the user answer
     """
+
+    AGENT_NAME = "interview_question_evaluator"
 
     def _create_system_prompt(self, interview_state: GraphState) -> List[BaseMessage]:
         """
@@ -24,14 +26,17 @@ class InterviewQuestionEvaluator(InterviewAgent):
         """
         self.logger.debug("Create interview evaluator prompt...")
         system_prompt = self.agent_prompt_templates["agent_prompt"].format(
-            **{"generated_question": interview_state.generated_question})
+            **{
+                "generated_question": interview_state.generated_question,
+                "user_message": interview_state.get_last_candidate_message(),
+            })
         return interview_state.messages + [SystemMessage(content=system_prompt)]
 
     def agent_callback(self, interview_state: GraphState) -> GraphState:
         """
         Agent callback method. More info see InterviewAgent.agent_callback
         """
-        self.logger.debug(f"Invoking agent {self.__class__.__name__}")
+        self.logger.info(f"Invoking agent {self.__class__.__name__}")
         # create and invoke LLM agent
         open_ai_llm = LLMFactory.get_chat_open_ai_llm()
         llm_with_tools = open_ai_llm.bind_tools(self.get_tools())
@@ -42,7 +47,8 @@ class InterviewQuestionEvaluator(InterviewAgent):
         new_state = GraphState(
             messages=[response],
             generate_type_of_question=interview_state.generate_type_of_question,
-            generated_question=generated_question
+            generated_question=generated_question,
+            last_agent=self.AGENT_NAME
         )
         # process response
         return new_state

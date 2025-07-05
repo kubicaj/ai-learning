@@ -2,12 +2,11 @@ from typing import List
 
 from langchain_core.messages import SystemMessage, BaseMessage, AIMessage, HumanMessage
 
-from src.langgraph.interview_avatar.agent.interview_agent import InterviewAgent, POSITION_DESCRIPTION, \
-    TOPICS_TO_INTERVIEW
+from src.langgraph.interview_avatar.agent.interview_agent import InterviewAgent
+from src.langgraph.interview_avatar.config_loader import POSITION_DESCRIPTION, TOPICS_TO_INTERVIEW
 from src.langgraph.interview_avatar.pojo.graph_state import GraphState
-from src.langgraph.interview_avatar.types.question_types import QuestionTypes
+from src.langgraph.interview_avatar.custom_types.question_types import QuestionTypes
 from src.langgraph.llm.llm_factory import LLMFactory
-
 
 
 class InterviewQuestionGenerator(InterviewAgent):
@@ -15,6 +14,8 @@ class InterviewQuestionGenerator(InterviewAgent):
     Agent responsible for generating of the interview questions for particular topic.
     Agent will also provide the best answer for the question
     """
+
+    AGENT_NAME = "interview_question_generator"
 
     @staticmethod
     def get_prompt_names() -> list[str]:
@@ -41,7 +42,7 @@ class InterviewQuestionGenerator(InterviewAgent):
                 **{
                     "generate_type_of_question": interview_state.generate_type_of_question.value,
                     "position_description": POSITION_DESCRIPTION,
-                    "interview_manager_instructions": interview_state.interview_manager_instructions,
+                    "interview_manager_instructions": interview_state.interview_manager_message,
                     "topics_to_interview": TOPICS_TO_INTERVIEW
                 }
             )
@@ -53,35 +54,27 @@ class InterviewQuestionGenerator(InterviewAgent):
         """
         Agent callback method. More info see InterviewAgent.agent_callback
         """
-        self.logger.debug(f"Invoking agent {self.__class__.__name__}")
+        self.logger.info(f"Invoking agent {self.__class__.__name__}")
         # create and invoke LLM agent
         open_ai_llm = LLMFactory.get_chat_open_ai_llm()
         llm_with_tools = open_ai_llm.bind_tools(self.get_tools())
 
         # find last user message. Loop from the end because there are last queries from user
-        user_query = None
-        for message in interview_state.messages[::-1]:
-            if isinstance(message, HumanMessage):
-                user_query = message.content
-                break
+        user_query = interview_state.get_last_candidate_message()
 
         response = llm_with_tools.invoke(input=self._create_interview_generator_prompt(interview_state, user_query))
 
         # save the previous generated question
         generated_question = interview_state.generated_question
-        user_query_answer = ""
         if isinstance(response, AIMessage) and not response.tool_calls:
-            if user_query:
-                user_query_answer = response.content
-            else:
-                generated_question = response.content
+            generated_question = response.content
 
         new_state = GraphState(
             messages=[response],
             generate_type_of_question=interview_state.generate_type_of_question,
             generated_question=generated_question,
-            user_query_answer=user_query_answer,
-            interview_manager_instructions=interview_state.interview_manager_instructions
+            interview_manager_message=interview_state.interview_manager_message,
+            last_agent=self.AGENT_NAME
         )
         # process response
         return new_state
@@ -101,7 +94,7 @@ if __name__ == '__main__':
         graph_state = GraphState(
             messages=[{"role": "user", "content": user_contents[i]}],
             generate_type_of_question=QuestionTypes.TECHNICAL_QUESTION,
-            interview_manager_instructions="Give me some simple question about Databricks"
+            interview_manager_message="Give me some simple question about Databricks"
         )
         result, compiled_state_graph = InterviewQuestionGenerator().call_as_standalone(
             graph_state,

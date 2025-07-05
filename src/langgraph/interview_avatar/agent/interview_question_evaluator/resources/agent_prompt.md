@@ -10,6 +10,10 @@ You are the Technical specialist which evaluate if the user answer on some techn
 
 {generated_question}
 
+# User answer or addition question
+
+{user_message}
+
 # Output structure
 
 The output of your answer HAVE TO BE formated as following:
