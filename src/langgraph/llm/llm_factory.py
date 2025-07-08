@@ -4,8 +4,7 @@ from langchain_openai import ChatOpenAI
 # get to load environment variables
 load_dotenv(override=True)
 
-# consider this as a singletone
-_chat_open_ai_model: ChatOpenAI = None
+_chat_open_ai_model: dict[str, ChatOpenAI] = {}
 
 
 class LLMFactory:
@@ -14,7 +13,7 @@ class LLMFactory:
     """
 
     @staticmethod
-    def get_chat_open_ai_llm() -> ChatOpenAI:
+    def get_chat_open_ai_llm(llm_id = "llm_id") -> ChatOpenAI:
         """
         Create new OpenAI client
 
@@ -25,8 +24,8 @@ class LLMFactory:
             ChatOpenAI instance
         """
         # you can use regular OpenAI SDK but because we are in LangGraph ecosystem then it is better to show how to call
-        # OpenAI llm using LangChain libraries
+        # OpenAI llm using LangChain libraries gpt-4o-mini
         global _chat_open_ai_model
-        if not _chat_open_ai_model:
-            _chat_open_ai_model = ChatOpenAI(model="gpt-4o-mini")
-        return _chat_open_ai_model
+        if not _chat_open_ai_model.get(llm_id):
+            _chat_open_ai_model[llm_id] = ChatOpenAI(model="gpt-4.1")
+        return _chat_open_ai_model[llm_id]

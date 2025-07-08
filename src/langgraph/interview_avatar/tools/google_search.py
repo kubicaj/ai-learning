@@ -2,7 +2,7 @@
 Modul containing tool for Google search
 """
 from dotenv import load_dotenv
-from langchain.agents import Tool
+from langchain_core.tools import Tool
 from langchain_community.utilities import GoogleSerperAPIWrapper
 
 load_dotenv(override=True)

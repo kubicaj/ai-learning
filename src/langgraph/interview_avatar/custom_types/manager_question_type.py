@@ -1,11 +1,12 @@
 from enum import Enum
 
 
-class ManagerQuestionType(Enum):
+class ManagerMessagePurpose(Enum):
     """
-    Enum of questions manager can ask
+    Enum of purpose of manager message
     """
-    ASK_TECHNICAL_LEAD_TO_GET_INTERVIEW_QUESTION = "ask_technical_lead_to_get_the_question"
-    ASK_TECHNICAL_LEAD_TO_EVALUATE_QUESTION = "ask_technical_lead_to_evaluate_the_question"
-    ASK_USER_QUESTION = "ask_user_question"
-    SEND_USER_GENERATED_QUESTION = "send_user_generated_question"
+    GENERATE_TECHNICAL_QUESTION = "generate_technical_question_by_asking_the_technical_lead"
+    EVALUATE_TECHNICAL_QUESTION = "evaluate_technical_question_by_asking_the_technical_lead"
+    SEND_CANDIDATE_QUESTION_TO_TECH_LEAD = "send_candidate_question_to_tech_lead"
+    SEND_QUESTION_THE_CANDIDATE = "send_question_the_candidate"
+    ANSWER_CANDIDATE_QUESTION = "answer_candidate_question"

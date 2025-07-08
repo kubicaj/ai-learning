@@ -24,9 +24,9 @@ class InterviewAgent(ABC):
         self.agent_prompt_templates = self.load_agent_prompt()
 
     @abstractmethod
-    def agent_callback(self, graph_state: GraphState) -> Any:
+    def agent_callback_implementation(self, graph_state: GraphState) -> Any:
         """
-        Agent callback which is adding into langraph
+        Agent callback which is adding into LangGraph
         """
         pass
 
@@ -43,6 +43,15 @@ class InterviewAgent(ABC):
         """
         # default is agent prompt
         return ["agent_prompt"]
+
+    def agent_callback(self, graph_state: GraphState) -> Any:
+        """
+        General callback function
+        """
+        self.logger.info(f"Invoking agent: {self.__class__.__name__} with state \n {graph_state}")
+        result = self.agent_callback_implementation(graph_state)
+        self.logger.info(f"Result from agent: {self.__class__.__name__} = \n {result}")
+        return result
 
     def load_agent_prompt(self, placeholders: dict[str, str] = None) -> dict[str, str]:
         """
