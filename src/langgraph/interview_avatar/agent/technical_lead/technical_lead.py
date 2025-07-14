@@ -65,26 +65,9 @@ class TechnicalLead(InterviewAgent):
             generated_question = response.content
 
         if isinstance(response, AIMessage) and response.tool_calls:
-            tool_messages = []
-            tools = self.get_tools()
-            for tool_call in response.tool_calls:
-                # loop all tools and create final tool message
-                tool_name = tool_call["name"]
-                # Find and invoke the tool
-                tool_fn = next((t for t in tools if t.name == tool_name), None)
-                if tool_fn is None:
-                    raise ValueError(f"Tool {tool_name} not found.")
-
-                tool_result = tool_fn.invoke(tool_call["args"])
-                tool_messages.append(ToolMessage(
-                    tool_call_id=tool_call["id"],
-                    content=tool_result
-                ))
-
-            # Re-invoke the model with the tool response
-            all_messages = messages + [response] + tool_messages
-            final_response = llm_with_tools.invoke(input=all_messages)
-
+            final_response = self.process_tool_response(
+                response, messages, llm_with_tools
+            )
             return InterviewGraphState(
                 messages=[final_response],
                 generated_question=final_response.content,

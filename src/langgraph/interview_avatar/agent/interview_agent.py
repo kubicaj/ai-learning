@@ -3,9 +3,11 @@ import os
 from abc import ABC, abstractmethod
 from typing import Any, List, Tuple
 
+from langchain_core.messages import ToolMessage, BaseMessage
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.constants import START
 from langgraph.graph import StateGraph
+from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import ToolNode, tools_condition
 
 from src.langgraph.interview_avatar.pojo.interview_graph_state import InterviewGraphState
@@ -67,6 +69,40 @@ class InterviewAgent(ABC):
         result = self.agent_callback_implementation(graph_state)
         self.logger.info(f"Result from agent: {self.__class__.__name__} = \n {result}")
         return result
+
+    def process_tool_response(self, response: BaseMessage, messages: List[BaseMessage],
+                              llm_client: ChatOpenAI) -> BaseMessage:
+        """
+        Process response with tools
+
+        Args:
+            response - base response wil tool calls
+            messages - history of messages
+            llm_client - llm API client
+
+        Args:
+            response from llm
+        """
+        self.logger.debug("Tools was found to call. Going to process it")
+        tool_messages = []
+        tools = self.get_tools()
+        for tool_call in response.tool_calls:
+            # loop all tools and create final tool message
+            tool_name = tool_call["name"]
+            # Find and invoke the tool
+            tool_fn = next((t for t in tools if t.name == tool_name), None)
+            if tool_fn is None:
+                raise ValueError(f"Tool {tool_name} not found.")
+
+            tool_result = tool_fn.invoke(tool_call["args"])
+            tool_messages.append(ToolMessage(
+                tool_call_id=tool_call["id"],
+                content=tool_result
+            ))
+
+        # Re-invoke the model with the tool response
+        all_messages = messages + [response] + tool_messages
+        return llm_client.invoke(input=all_messages)
 
     def load_agent_prompt(self, placeholders: dict[str, str] = None) -> dict[str, str]:
         """
