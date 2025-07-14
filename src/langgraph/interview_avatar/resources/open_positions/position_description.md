@@ -40,3 +40,12 @@ We are looking for an engineer with a real passion for Data who is willing to le
 ## Advantage:
 
 - Experience with Airflow, DBT, Databricks ,Azure data factory
+
+## Areas to interview
+
+- SQL
+- pyspark
+- databricks
+- AWS
+- Data engineering
+- Data architecture

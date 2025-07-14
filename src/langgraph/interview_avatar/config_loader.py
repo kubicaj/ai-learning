@@ -33,5 +33,4 @@ def get_pdf_content(pdf_path: str) -> str:
     return pdf_text
 
 CANDIDATE_CV = get_pdf_content("resources/cv_candidate.pdf")
-POSITION_DESCRIPTION = _load_md_resource_file("position_description.md")
-TOPICS_TO_INTERVIEW = _load_md_resource_file("technical_topics_to_interview.md")
+POSITION_DESCRIPTION = _load_md_resource_file("open_positions/position_description.md")

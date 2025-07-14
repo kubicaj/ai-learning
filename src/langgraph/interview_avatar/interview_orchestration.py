@@ -8,7 +8,7 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from src.langgraph.interview_avatar.agent.interview_agent import InterviewAgent
 from src.langgraph.interview_avatar.agent.interview_manager.interview_manager import InterviewManager
 from src.langgraph.interview_avatar.agent.technical_lead.technical_lead import TechnicalLead
-from src.langgraph.interview_avatar.pojo.graph_state import GraphState
+from src.langgraph.interview_avatar.pojo.interview_graph_state import InterviewGraphState
 from src.openai.common.logger import init_logger
 
 
@@ -40,7 +40,7 @@ class InterviewOrchestration:
         self.logger.info("Creating nodes and builder ....")
         # //////////////// First Initialization ////////////////
 
-        graph_builder = StateGraph(GraphState)
+        graph_builder = StateGraph(InterviewGraphState)
 
         # //////////////// Create Nodes ////////////////
 
@@ -61,7 +61,7 @@ class InterviewOrchestration:
         graph_builder.add_edge(START, InterviewManager.AGENT_NAME)
 
         # routing from manager. You can see that only manager can end the super step
-        graph_builder.add_conditional_edges(InterviewManager.AGENT_NAME, InterviewManager.agent_router, {
+        graph_builder.add_conditional_edges(InterviewManager.AGENT_NAME, lambda graph_state: graph_state.next_agent, {
             TechnicalLead.AGENT_NAME: TechnicalLead.AGENT_NAME,
             "END": END
         })
@@ -82,7 +82,7 @@ class InterviewOrchestration:
         self.compiled_graph = graph_builder.compile(checkpointer=MemorySaver())
 
     def invoke_user_query(self, user_message: str, history):
-        interview_step_state = GraphState(
+        interview_step_state = InterviewGraphState(
             messages=[{"role": "user", "content": user_message}]
         )
         graph_config = {

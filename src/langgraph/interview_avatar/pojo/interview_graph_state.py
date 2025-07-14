@@ -1,26 +1,31 @@
-from typing import Annotated, Optional, List, Any, TypedDict
+from typing import Annotated, Optional, List, Any
 
 from langchain_core.messages import HumanMessage
 from langgraph.graph import add_messages
 from pydantic import BaseModel
 
-from src.langgraph.interview_avatar.custom_types.manager_question_type import ManagerMessagePurpose
-from src.langgraph.interview_avatar.custom_types.question_types import QuestionTypes
+def increment_number_by_one(existing_state_number: int | None, new_state_number: int) -> int:
+    """
+    Reducer to increase number in state file
+    """
+    return (existing_state_number or 0) + 1
 
-
-class GraphState(BaseModel):
+class InterviewGraphState(BaseModel):
     """
     Main class representing state within LangGraph
     """
     messages: Annotated[List[Any], add_messages]
-    generated_question: Annotated[Optional[str], "Generated question"] = None
+    generated_question: Annotated[Optional[str], "Generated question"] = "No question"
     # instructions which are send the question generator agent to create new question
     interview_manager_message: Annotated[Optional[str], "Instructions from interview manager"] = None
     # last agent which was process
     last_agent: Annotated[Optional[str], "Name of last agent which was process"] = None
+    # next agent to route
     next_agent: Annotated[Optional[str], "Name of last next agent which need to be call"] = None
     # query from candidate. Especially some additional question to interview question
     candidate_query: Annotated[Optional[str], "Query from the user"] = None
+    # agent iterations
+    agent_iterations: Annotated[int, increment_number_by_one] = 0
 
     def get_last_candidate_message(self) -> str:
         """

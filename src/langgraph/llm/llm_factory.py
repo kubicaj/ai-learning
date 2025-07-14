@@ -24,8 +24,8 @@ class LLMFactory:
             ChatOpenAI instance
         """
         # you can use regular OpenAI SDK but because we are in LangGraph ecosystem then it is better to show how to call
-        # OpenAI llm using LangChain libraries gpt-4o-mini
+        # OpenAI llm using LangChain libraries gpt-4.1
         global _chat_open_ai_model
         if not _chat_open_ai_model.get(llm_id):
-            _chat_open_ai_model[llm_id] = ChatOpenAI(model="gpt-4.1")
+            _chat_open_ai_model[llm_id] = ChatOpenAI(model="gpt-4o-mini")
         return _chat_open_ai_model[llm_id]

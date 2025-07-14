@@ -1,6 +1,5 @@
 import inspect
 import os
-from pypdf import PdfReader
 from abc import ABC, abstractmethod
 from typing import Any, List, Tuple
 
@@ -9,7 +8,7 @@ from langgraph.constants import START
 from langgraph.graph import StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 
-from src.langgraph.interview_avatar.pojo.graph_state import GraphState
+from src.langgraph.interview_avatar.pojo.interview_graph_state import InterviewGraphState
 from src.langgraph.interview_avatar.tools.google_search import tool_search_for_interview
 from src.openai.common.logger import init_logger
 
@@ -19,12 +18,14 @@ class InterviewAgent(ABC):
     Abstract class which is used by all interview agents
     """
 
+    MAX_ALLOWED_ITERATIONS = 10
+
     def __init__(self):
         self.logger = init_logger()
         self.agent_prompt_templates = self.load_agent_prompt()
 
     @abstractmethod
-    def agent_callback_implementation(self, graph_state: GraphState) -> Any:
+    def agent_callback_implementation(self, graph_state: InterviewGraphState) -> Any:
         """
         Agent callback which is adding into LangGraph
         """
@@ -32,6 +33,12 @@ class InterviewAgent(ABC):
 
     @staticmethod
     def get_tools() -> List[Any]:
+        """
+        Get list of available tools
+
+        Return:
+            list of tools
+        """
         return [
             tool_search_for_interview
         ]
@@ -44,11 +51,19 @@ class InterviewAgent(ABC):
         # default is agent prompt
         return ["agent_prompt"]
 
-    def agent_callback(self, graph_state: GraphState) -> Any:
+    def agent_callback(self, graph_state: InterviewGraphState) -> Any:
         """
         General callback function
+
+        Args:
+            graph_state - graph state
+
+        Return:
+            return value from callback. Typically, it will be new state
         """
         self.logger.info(f"Invoking agent: {self.__class__.__name__} with state \n {graph_state}")
+        if graph_state.agent_iterations > self.MAX_ALLOWED_ITERATIONS:
+            raise Exception("The maximal iterations has been reached. Try again")
         result = self.agent_callback_implementation(graph_state)
         self.logger.info(f"Result from agent: {self.__class__.__name__} = \n {result}")
         return result
@@ -61,7 +76,7 @@ class InterviewAgent(ABC):
             placeholders dict[str, str]: Placeholders in prompt
 
         Returns:
-            str: Content of the Markdown file.
+            dict: key = MD file name and value = Content of the Markdown file.
         """
         file_path = inspect.getfile(self.__class__)
         class_file_location = os.path.dirname(os.path.abspath(file_path))
@@ -75,7 +90,7 @@ class InterviewAgent(ABC):
                 result[prompt_file_name] = result[prompt_file_name].format(**placeholders)
         return result
 
-    def call_as_standalone(self, initial_state: GraphState, memory_id: str = None,
+    def call_as_standalone(self, initial_state: InterviewGraphState, memory_id: str = None,
                            compiled_state_graph: StateGraph = None) -> Tuple[
         Any, StateGraph]:
         """
@@ -84,7 +99,7 @@ class InterviewAgent(ABC):
         """
         # //////////////// First Initialization ////////////////
 
-        graph_builder = StateGraph(GraphState)
+        graph_builder = StateGraph(InterviewGraphState)
 
         # //////////////// Create Nodes ////////////////
 

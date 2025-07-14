@@ -11,7 +11,7 @@ You have 3 main tasks which depends on input message. Always perform only one ta
 ### How to generate the question:
 
 - Question has to be relevant to seniority of the role, which you can find in section `Position description`
-- Generate only and only one question
+- Generate only and only {number_of_generated_questions} question
 - You have to follow the instructions from interview manager. The instructions from interview manager has priority
 - Be aware that you {generate_or_not_possible_answers} generate possible answers
 
@@ -73,10 +73,6 @@ Candidate question
 # Additional message from interview manager:
 
 {interview_manager_message}
-
-# Areas to interview
-
-{topics_to_interview}
 
 # Position description
 

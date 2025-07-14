@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from src.langgraph.interview_avatar.agent.interview_agent import InterviewAgent
 from src.langgraph.interview_avatar.agent.technical_lead.technical_lead import TechnicalLead
 from src.langgraph.interview_avatar.config_loader import POSITION_DESCRIPTION, CANDIDATE_CV
-from src.langgraph.interview_avatar.pojo.graph_state import GraphState
+from src.langgraph.interview_avatar.pojo.interview_graph_state import InterviewGraphState
 from src.langgraph.interview_avatar.custom_types.interview_stage import InterviewStage
 from src.langgraph.llm.llm_factory import LLMFactory
 
@@ -17,7 +17,7 @@ class ManagerOutput(BaseModel):
     """
     action_to_take: Annotated[
         Literal[
-            "asking_technical_lead", "sending_message_to_candidate"], "What action the interview manager is performing"]
+            "talking_to_technical_lead", "talking_to_candidate"], "With who you are talking right now"]
     stage: Annotated[InterviewStage, "Stage of interview where manager is focus"]
     manager_message: Annotated[str, "Manager message: to user or to technical lead"]
 
@@ -29,7 +29,7 @@ class InterviewManager(InterviewAgent):
 
     AGENT_NAME = "interview_manager"
 
-    def _create_system_prompt(self, interview_state: GraphState) -> List[BaseMessage]:
+    def _create_system_prompt(self, interview_state: InterviewGraphState) -> List[BaseMessage]:
         """
         Create interview manager prompt
 
@@ -47,24 +47,12 @@ class InterviewManager(InterviewAgent):
         system_prompt = self.agent_prompt_templates["agent_prompt"].format(**{
             "position_description": POSITION_DESCRIPTION,
             "candidate_cv": CANDIDATE_CV,
-            "answer_from_technical_lead": answer_from_technical_lead
+            "answer_from_technical_lead": answer_from_technical_lead,
+            "iterations_with_other_agents": interview_state.agent_iterations
         })
         return interview_state.messages + [SystemMessage(content=system_prompt)]
 
-    @staticmethod
-    def agent_router(interview_state: GraphState) -> str:
-        """
-        Create router (where the route the agent answers) for langgraph
-
-        Args:
-            interview_state: current state
-
-        Return:
-            name of next agent
-        """
-        return interview_state.next_agent
-
-    def agent_callback_implementation(self, interview_state: GraphState) -> GraphState:
+    def agent_callback_implementation(self, interview_state: InterviewGraphState) -> InterviewGraphState:
         """
         Agent callback method. More info see InterviewAgent.agent_callback
         """
@@ -73,14 +61,15 @@ class InterviewManager(InterviewAgent):
         response: ManagerOutput = llm_with_structured_output.invoke(input=self._create_system_prompt(interview_state))
 
         # if manager is asking about the question then send the instructions to tech lead
-        new_state = GraphState(
+        new_state = InterviewGraphState(
             messages=[
                 {"role": "assistant", "content": f"{response.manager_message}"}],
             generated_question=interview_state.generated_question,
             interview_manager_message=response.manager_message,
             candidate_query=None,
+            agent_iterations=interview_state.agent_iterations,
             last_agent=self.AGENT_NAME,
-            next_agent=TechnicalLead.AGENT_NAME if response.action_to_take == "asking_technical_lead" else "END"
+            next_agent=TechnicalLead.AGENT_NAME if response.action_to_take == "talking_to_technical_lead" else "END"
         )
         # process response
         return new_state
