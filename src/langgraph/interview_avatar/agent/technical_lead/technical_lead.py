@@ -2,7 +2,6 @@ from typing import List
 from langchain_core.messages import SystemMessage, BaseMessage, AIMessage, ToolMessage
 
 from src.langgraph.interview_avatar.agent.interview_agent import InterviewAgent
-from src.langgraph.interview_avatar.config_loader import POSITION_DESCRIPTION
 from src.langgraph.interview_avatar.pojo.interview_graph_state import InterviewGraphState
 from src.langgraph.llm.llm_factory import LLMFactory
 
@@ -42,7 +41,7 @@ class TechnicalLead(InterviewAgent):
             **{
                 "generated_question": generated_question,
                 "candidate_question": interview_state.candidate_query,
-                "position_description": POSITION_DESCRIPTION,
+                "position_description": self._interview_config.get_position_content(self.chosen_position),
                 "interview_manager_message": interview_state.interview_manager_message,
                 "answer_to_question": interview_state.candidate_query,
                 "generate_or_not_possible_answers": "DO NOT",

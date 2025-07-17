@@ -13,7 +13,7 @@ class LLMFactory:
     """
 
     @staticmethod
-    def get_chat_open_ai_llm(llm_id = "llm_id") -> ChatOpenAI:
+    def get_chat_open_ai_llm(llm_id = "llm_id", llm_model_type="gpt-4o-mini") -> ChatOpenAI:
         """
         Create new OpenAI client
 
@@ -27,5 +27,5 @@ class LLMFactory:
         # OpenAI llm using LangChain libraries gpt-4.1
         global _chat_open_ai_model
         if not _chat_open_ai_model.get(llm_id):
-            _chat_open_ai_model[llm_id] = ChatOpenAI(model="gpt-4o-mini")
+            _chat_open_ai_model[llm_id] = ChatOpenAI(model=llm_model_type)
         return _chat_open_ai_model[llm_id]

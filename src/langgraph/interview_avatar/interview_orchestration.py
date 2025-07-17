@@ -19,11 +19,17 @@ class InterviewOrchestration:
     """
     TOOLS_AGENT_NAME = "tools"
 
-    def __init__(self):
+    def __init__(self, chosen_position: str):
+        """
+        Create InterviewOrchestration
+
+        Args:
+            chosen_position (str) - identifier of position which was choose
+        """
         # here init dict of all nodes
         self.nodes_dict = {
-            InterviewManager.AGENT_NAME: InterviewManager().agent_callback,
-            TechnicalLead.AGENT_NAME: TechnicalLead().agent_callback,
+            InterviewManager.AGENT_NAME: InterviewManager(chosen_position).agent_callback,
+            TechnicalLead.AGENT_NAME: TechnicalLead(chosen_position).agent_callback,
             self.TOOLS_AGENT_NAME: ToolNode(tools=InterviewAgent.get_tools())
         }
         self.session_id = uuid.uuid4()

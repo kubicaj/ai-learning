@@ -10,6 +10,7 @@ from langgraph.graph import StateGraph
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import ToolNode, tools_condition
 
+from src.langgraph.interview_avatar.interview_config import InterviewConfig
 from src.langgraph.interview_avatar.pojo.interview_graph_state import InterviewGraphState
 from src.langgraph.interview_avatar.tools.google_search import tool_search_for_interview
 from src.openai.common.logger import init_logger
@@ -22,9 +23,11 @@ class InterviewAgent(ABC):
 
     MAX_ALLOWED_ITERATIONS = 10
 
-    def __init__(self):
+    def __init__(self, chosen_position: str = None):
         self.logger = init_logger()
         self.agent_prompt_templates = self.load_agent_prompt()
+        self._interview_config = InterviewConfig.get_active_instance()
+        self.chosen_position = chosen_position
 
     @abstractmethod
     def agent_callback_implementation(self, graph_state: InterviewGraphState) -> Any:

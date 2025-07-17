@@ -5,7 +5,6 @@ from pydantic import BaseModel
 
 from src.langgraph.interview_avatar.agent.interview_agent import InterviewAgent
 from src.langgraph.interview_avatar.agent.technical_lead.technical_lead import TechnicalLead
-from src.langgraph.interview_avatar.config_loader import POSITION_DESCRIPTION, CANDIDATE_CV
 from src.langgraph.interview_avatar.pojo.interview_graph_state import InterviewGraphState
 from src.langgraph.interview_avatar.custom_types.interview_stage import InterviewStage
 from src.langgraph.llm.llm_factory import LLMFactory
@@ -45,8 +44,8 @@ class InterviewManager(InterviewAgent):
         self.logger.debug("Create interview evaluator prompt...")
         # if there is nno user query then generate the question
         system_prompt = self.agent_prompt_templates["agent_prompt"].format(**{
-            "position_description": POSITION_DESCRIPTION,
-            "candidate_cv": CANDIDATE_CV,
+            "position_description": self._interview_config.get_position_content(self.chosen_position),
+            "candidate_cv": self._interview_config.candidate_cv,
             "answer_from_technical_lead": answer_from_technical_lead,
             "iterations_with_other_agents": interview_state.agent_iterations
         })

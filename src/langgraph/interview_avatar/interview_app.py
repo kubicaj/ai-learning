@@ -4,7 +4,8 @@ from src.langgraph.interview_avatar.interview_orchestration import InterviewOrch
 
 
 def setup_interview_app():
-    interview_orchestration = InterviewOrchestration()
+    print("Setuping the interview application")
+    interview_orchestration = InterviewOrchestration("position_description")
     interview_orchestration.create_graph()
     return interview_orchestration
 
