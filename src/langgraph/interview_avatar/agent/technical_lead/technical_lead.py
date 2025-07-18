@@ -13,15 +13,14 @@ class TechnicalLead(InterviewAgent):
 
     AGENT_NAME = "technical_lead"
 
-    def __init__(self, additional_note_about_task: str = "", number_of_generated_questions: int = 1):
+    def __init__(self, chosen_position: str = None, number_of_generated_questions: int = 1):
         """
         Args:
             number_of_generated_questions - Number of generated questions per one shot
             additional_note_about_task - additional note to the task
         """
-        super().__init__()
+        super().__init__(chosen_position)
         self.number_of_generated_questions = number_of_generated_questions
-        self.additional_note_about_task = additional_note_about_task
 
     def _create_system_prompt(self, interview_state: InterviewGraphState) -> List[BaseMessage]:
         """
@@ -45,7 +44,6 @@ class TechnicalLead(InterviewAgent):
                 "interview_manager_message": interview_state.interview_manager_message,
                 "answer_to_question": interview_state.candidate_query,
                 "generate_or_not_possible_answers": "DO NOT",
-                "additional_note_about_task": self.additional_note_about_task,
                 "number_of_generated_questions": self.number_of_generated_questions
             })
         return interview_state.messages + [SystemMessage(content=system_prompt)]

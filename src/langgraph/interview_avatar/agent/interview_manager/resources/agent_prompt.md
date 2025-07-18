@@ -62,7 +62,7 @@ The **Technical Lead** supports you with:
 
 ### 2. Questions about candidate and career
 
-- Ask **exactly 5 questions**. about candidate career
+- Ask **exactly 5 questions**. about candidate career. But one by one, not all of them.
 
 ### 3. Technical Questions
 
