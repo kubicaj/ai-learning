@@ -26,13 +26,13 @@ class InterviewApp:
         Create InterviewOrchestration
 
         Args:
-            chosen_position (str) - identifier of position which was choose
+            chosen_position (str) - identifier of position which was choosen
         """
         # here init dict of all nodes
         self.nodes_dict = {
             InterviewManager.AGENT_NAME: InterviewManager(chosen_position).agent_callback,
             TechnicalLead.AGENT_NAME: TechnicalLead(chosen_position).agent_callback,
-            InterviewAdministrator.AGENT_NAME: TechnicalLead(chosen_position).agent_callback,
+            InterviewAdministrator.AGENT_NAME: InterviewAdministrator(chosen_position).agent_callback,
             self.TOOLS_AGENT_NAME: ToolNode(tools=InterviewAgent.get_tools())
         }
         self.session_id = uuid.uuid4()
@@ -92,6 +92,7 @@ class InterviewApp:
         self._add_edges_with_conditions(graph_builder)
         # add memory for whole session
         self.compiled_graph = graph_builder.compile(checkpointer=MemorySaver())
+        self.compiled_graph.get_graph().draw_mermaid_png(output_file_path="graph.png")
 
     def invoke_user_query(self, user_message: str, history):
         interview_step_state = InterviewGraphState(

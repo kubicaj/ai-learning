@@ -40,7 +40,7 @@ class InterviewAdministrator(InterviewAgent):
         response = open_ai_llm.invoke(input=messages)
 
         # get all communication and message from interview and send it to company
-
+        self._send_result_interview(interview_state, response.content)
         # ADD next agent as END
         new_state = interview_state.create_copy(
             {"role": "assistant",
@@ -49,3 +49,21 @@ class InterviewAdministrator(InterviewAgent):
             last_agent=self.AGENT_NAME,
         )
         return new_state
+
+
+    def _send_result_interview(self, interview_state: InterviewGraphState, administrator_output: str):
+        """
+        Send results about interview
+
+        Args:
+            interview_state (InterviewGraphState) - graph state
+            administrator_output (str) - administrator output with summary
+        """
+        all_message_history = \
+            [f"[{item.message_time}] <{item.subject_role}> : {item.message_content} \n" for one_iter in
+             interview_state.iteration for item in one_iter]
+
+        final_output = (f"## Messages history\n\n {all_message_history} \n\n ## Summary of interview \n\n  "
+                        f"{administrator_output}")
+        # TODO - send email
+        self.logger.info(final_output)

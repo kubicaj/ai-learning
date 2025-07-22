@@ -57,23 +57,15 @@ class TechnicalLead(InterviewAgent):
         llm_with_tools = open_ai_llm.bind_tools(self.get_tools())
         messages = self._create_system_prompt(interview_state)
         response = llm_with_tools.invoke(input=messages)
-        generated_question = ""
-        if isinstance(response, AIMessage) and not response.tool_calls:
-            generated_question = response.content
 
-        if isinstance(response, AIMessage) and response.tool_calls:
-            final_response = self.process_tool_response(
+        while isinstance(response, AIMessage) and response.tool_calls:
+            response = self.process_tool_response(
                 response, messages, llm_with_tools
-            )
-            return interview_state.create_copy(
-                final_response,
-                generated_question=final_response.content,
-                last_agent=self.AGENT_NAME
             )
 
         # return in case of calling LLM without tools
         return interview_state.create_copy(
             response,
-            generated_question=generated_question,
+            generated_question=response.content,
             last_agent=self.AGENT_NAME
         )

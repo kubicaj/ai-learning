@@ -11,17 +11,17 @@ BG = "#f4f4fb"
 MAX_COLUMNS = 4  # Max cards per row
 
 
-def load_position_detail(idx):
+def load_position_detail(position_index):
     """
     Show detail modal with content from the selected position.
 
     Args:
-        idx (int): Index of selected position
+        position_index (int): Index of selected position
 
     Returns:
         tuple: (Show modal, content, title)
     """
-    open_position = POSITIONS[idx]
+    open_position = POSITIONS[position_index]
     return gr.update(visible=True), open_position.open_position_content, open_position.position_title
 
 
@@ -43,23 +43,23 @@ def set_interview_buttons(disable=True):
     return [gr.update(interactive=(not disable)) for _ in POSITIONS]
 
 
-def start_interview(idx):
+def start_interview(position_index):
     """
     Prepare interface for a new interview.
 
     Args:
-        idx (int): Position index
+        position_index (int): Position index
 
     Returns:
         tuple: Set interview area visible, set position name, index, disable buttons, clear chat and state.
     """
     initial_message = (
-        f"Hi. You are here because you apply for position {POSITIONS[idx].position_title}. Can we start please?")
-    interview_app_app = setup_interview_app(POSITIONS[idx].position_identifier)
+        f"Hi. You are here because you apply for position {POSITIONS[position_index].position_title}. Can we start please?")
+    interview_app_app = setup_interview_app(POSITIONS[position_index].position_identifier)
     return (
         gr.update(visible=True),  # Show interview chat area
-        POSITIONS[idx].position_title,  # Show interview title
-        idx,  # Internal state index for position
+        POSITIONS[position_index].position_title,  # Show interview title
+        position_index,  # Internal state index for position
         *set_interview_buttons(disable=True),  # Disable all "Start interview" buttons
         [{"role": "assistant", "content": initial_message}],  # Clear chat display
         [{"role": "assistant", "content": initial_message}],  # Clear chat state/history
@@ -85,7 +85,8 @@ def end_interview(interview_app: InterviewApp, history: list[dict]):
     """
     Return UI state to 'no interview running'. Enable buttons etc.
     """
-
+    # finish it with clear guideline to finish the interview
+    interview_app.invoke_user_query("Finish the interview now", history)
     return (
         gr.update(visible=False),  # interview_chat hidden
         "",  # position name cleared
@@ -110,7 +111,7 @@ def setup_interview_app(position_to_interview):
     return interview_app
 
 
-def chat_fn(user_input, history: list[dict], interview_app: InterviewApp) -> tuple[list[dict], list[dict]]:
+def chat_function(user_input, history: list[dict], interview_app: InterviewApp) -> tuple[list[dict], list[dict], str]:
     """
     Simple handler: HR stub reply to every user turn.
 
@@ -120,11 +121,11 @@ def chat_fn(user_input, history: list[dict], interview_app: InterviewApp) -> tup
         interview_app (str): interview app
 
     Returns:
-        tuple: Updated visible chat log, updated internal state.
+        tuple: Updated visible chat log, updated internal state, clearing of input text
     """
     result = interview_app.invoke_user_query(user_input, history)
     history = history + [{"role": "user", "content": user_input}] + [result]
-    return history, history
+    return history, history, ""
 
 
 def chunk(seq, size):
@@ -202,7 +203,7 @@ with gr.Blocks(css=f"""
     interview_chat = gr.Column(visible=False)  # Contains entire chat panel, hidden until interview started
     chosen_position_name = gr.State("")  # Keeps selected name for chat
     interview_application = gr.State(None)
-    chosen_position_idx = gr.State(-1)  # Index of running interview
+    chosen_position_index = gr.State(-1)  # Index of running interview
 
     # ======== Interview Chat UI (rendered AFTER cards/grid) ========
     # This block (and its contents) are always below the cards!
@@ -210,32 +211,32 @@ with gr.Blocks(css=f"""
         pos_label = gr.Markdown("", elem_id="interview-title")  # Chat section title (dynamic)
         chatbot = gr.Chatbot(type="messages")  # Chat message area (history is managed via code)
         state = gr.State([])  # List of chat turns (messages)
-        msg = gr.Textbox(label="Your response / question...")  # User input
+        msg = gr.Textbox(label="Your response / question...", lines=10)  # User input
         send_btn = gr.Button("Send", variant="primary")  # Chat send button
         btn_end = gr.Button("End interview", variant="stop")  # End-interview button
 
         # When user sends, run chat_fn which returns (chatbot_content, history)
-        send_btn.click(chat_fn, [msg, state, interview_application], [chatbot, state])
+        send_btn.click(chat_function, [msg, state, interview_application], [chatbot, state, msg])
 
 
         # Update the chat section title according to position on change
         def update_title(pos_name):
             return f"### Interview chat for **{pos_name}** position"
 
-
         chosen_position_name.change(update_title, chosen_position_name, pos_label)
 
     # ====== Setup event connections (outside of panels!) ======
     # Position detail modal
-    for idx, btn in enumerate(show_btns):
-        btn.click(functools.partial(load_position_detail, idx), outputs=[detail_group, detail_md, detail_title])
+    for position_index, btn in enumerate(show_btns):
+        btn.click(functools.partial(load_position_detail, position_index),
+                  outputs=[detail_group, detail_md, detail_title])
 
     # Interview start: resets chat & disables all interview buttons
-    for idx, btn in enumerate(interview_btns):
+    for position_index, btn in enumerate(interview_btns):
         btn.click(
-            functools.partial(start_interview, idx),
-            outputs=[interview_chat, chosen_position_name, chosen_position_idx] + interview_btns + [chatbot, state,
-                                                                                                    interview_application]
+            functools.partial(start_interview, position_index),
+            outputs=[interview_chat, chosen_position_name, chosen_position_index] + interview_btns + [chatbot, state,
+                                                                                                      interview_application]
         )
 
     # End interview confirmation and finish buttons
@@ -244,7 +245,7 @@ with gr.Blocks(css=f"""
     btn_yes.click(
         end_interview,
         inputs=[interview_application, state],
-        outputs=[interview_chat, chosen_position_name, chosen_position_idx] + interview_btns + [confirm_modal]
+        outputs=[interview_chat, chosen_position_name, chosen_position_index] + interview_btns + [confirm_modal]
     )
 
 # ========= RUN UI =========
