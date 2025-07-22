@@ -1,6 +1,6 @@
 from typing import Annotated, Optional, List, Any
-
-from langchain_core.messages import HumanMessage
+from datetime import datetime
+from langchain_core.messages import HumanMessage, AIMessage, BaseMessage
 from langgraph.graph import add_messages
 from pydantic import BaseModel
 
@@ -16,7 +16,30 @@ def increment_number_by_one(existing_state_number: int | None, new_state_number:
     Return:
         (int) new number
     """
-    return (existing_state_number or 0) + 1
+    return (new_state_number or 0) + 1
+
+
+def append_historical_iterations(previous_iteration_messages: list | None, new_iteration_messages: list) -> list:
+    """
+    TODO
+    """
+
+    if len(new_iteration_messages) == 1 and len(new_iteration_messages[0]) == 1:
+        # starting new superstep
+        # Take the history and append new iteration
+        previous_iteration_messages.append(new_iteration_messages[0])
+        new_iteration_messages = previous_iteration_messages
+
+    return new_iteration_messages
+
+
+class HumanToAiIteration(BaseModel):
+    """
+    Class represent one iteration human -> <agents> -> human
+    """
+    message_time: Annotated[str, "Current date"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    message_content: Annotated[str, "Message content"] = ""
+    subject_role: Annotated[str, "Name of agent or human"] = ""
 
 
 class InterviewGraphState(BaseModel):
@@ -37,6 +60,50 @@ class InterviewGraphState(BaseModel):
     candidate_query: Annotated[Optional[str], "Query from the user"] = None
     # agent iterations
     agent_iterations: Annotated[int, increment_number_by_one] = 0
+    # messages accumulation per one human to agent iteration with specific format
+    iteration: Annotated[list[list[HumanToAiIteration]], append_historical_iterations] = None
+
+    def create_copy(self, new_message: dict, last_agent: str = None, next_agent: str = None,
+                    generated_question: str = None, interview_manager_message: str = None):
+        """
+        Create new copy of state
+
+        Args:
+            new_message (dict): new state message
+            last_agent (str): name of last agent
+            next_agent (str): name of next agent
+            generated_question (str): new generated question
+            interview_manager_message (str): new message from manager
+
+        Return:
+            (InterviewGraphState) copy of current object instance
+        """
+        if not self.iteration:
+            self.iteration = [[]]
+
+        if isinstance(new_message, dict):
+            self.iteration[-1].append(HumanToAiIteration(
+                message_content=new_message.get("content"),
+                subject_role=self.last_agent
+            ))
+        if isinstance(new_message, BaseMessage):
+            self.iteration[-1].append(HumanToAiIteration(
+                message_content=new_message.content,
+                subject_role=self.last_agent
+            ))
+
+
+        return InterviewGraphState(
+            messages=[new_message],
+            generated_question=self.generated_question if generated_question is None else generated_question,
+            interview_manager_message=self.interview_manager_message if interview_manager_message is None else
+            interview_manager_message,
+            last_agent=self.last_agent if last_agent is None else last_agent,
+            next_agent=self.next_agent if next_agent is None else next_agent,
+            candidate_query=self.candidate_query,
+            agent_iterations=self.agent_iterations,
+            iteration=self.iteration
+        )
 
     def get_last_candidate_message(self) -> str:
         """
@@ -45,7 +112,7 @@ class InterviewGraphState(BaseModel):
         Return:
             (str) - str message representation
         """
-        # reorder from last index and find last humman message
+        # reorder from last index and find last human message
         for message in self.messages[::-1]:
             if isinstance(message, HumanMessage):
                 return message.content
@@ -56,5 +123,6 @@ class InterviewGraphState(BaseModel):
             "generated_question": self.generated_question,
             "interview_manager_message": self.interview_manager_message,
             "candidate_query": self.candidate_query,
-            "last_agent": self.last_agent
+            "last_agent": self.last_agent,
+            "agent_iterations": self.agent_iterations
         })

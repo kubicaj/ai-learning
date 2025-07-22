@@ -2,7 +2,7 @@ import gradio as gr
 import functools
 
 from src.langgraph.interview_avatar.interview_config import InterviewConfig
-from src.langgraph.interview_avatar.interview_orchestration import InterviewOrchestration
+from src.langgraph.interview_avatar.interview_app import InterviewApp
 
 POSITIONS = list(InterviewConfig.get_active_instance().all_open_positions.values())
 
@@ -53,15 +53,17 @@ def start_interview(idx):
     Returns:
         tuple: Set interview area visible, set position name, index, disable buttons, clear chat and state.
     """
-    interview_orchestration_app = setup_interview_app(POSITIONS[idx].position_identifier)
+    initial_message = (
+        f"Hi. You are here because you apply for position {POSITIONS[idx].position_title}. Can we start please?")
+    interview_app_app = setup_interview_app(POSITIONS[idx].position_identifier)
     return (
         gr.update(visible=True),  # Show interview chat area
         POSITIONS[idx].position_title,  # Show interview title
         idx,  # Internal state index for position
         *set_interview_buttons(disable=True),  # Disable all "Start interview" buttons
-        [],  # Clear chat display
-        [],  # Clear chat state/history
-        interview_orchestration_app  # create new interview application
+        [{"role": "assistant", "content": initial_message}],  # Clear chat display
+        [{"role": "assistant", "content": initial_message}],  # Clear chat state/history
+        interview_app_app  # create new interview application
     )
 
 
@@ -79,10 +81,11 @@ def hide_confirm_modal():
     return gr.update(visible=False)
 
 
-def end_interview():
+def end_interview(interview_app: InterviewApp, history: list[dict]):
     """
     Return UI state to 'no interview running'. Enable buttons etc.
     """
+
     return (
         gr.update(visible=False),  # interview_chat hidden
         "",  # position name cleared
@@ -100,27 +103,26 @@ def setup_interview_app(position_to_interview):
         position_to_interview (str): Identifier of position to inteview
 
     Returns:
-        (InterviewOrchestration) new interview application instance
+        (InterviewApp) new interview application instance
     """
-    interview_orchestration = InterviewOrchestration(position_to_interview)
-    interview_orchestration.create_graph()
-    return interview_orchestration
+    interview_app = InterviewApp(position_to_interview)
+    interview_app.create_graph()
+    return interview_app
 
 
-def chat_fn(user_input, history, position_name, interview_orchestration: InterviewOrchestration):
+def chat_fn(user_input, history: list[dict], interview_app: InterviewApp) -> tuple[list[dict], list[dict]]:
     """
     Simple handler: HR stub reply to every user turn.
 
     Args:
         user_input (str): The user's message.
         history (list): The running list of chat turns.
-        position_name (str): Current position for display.
-        interview_orchestration (str): interview app
+        interview_app (str): interview app
 
     Returns:
         tuple: Updated visible chat log, updated internal state.
     """
-    result = interview_orchestration.invoke_user_query(user_input, history)
+    result = interview_app.invoke_user_query(user_input, history)
     history = history + [{"role": "user", "content": user_input}] + [result]
     return history, history
 
@@ -213,7 +215,7 @@ with gr.Blocks(css=f"""
         btn_end = gr.Button("End interview", variant="stop")  # End-interview button
 
         # When user sends, run chat_fn which returns (chatbot_content, history)
-        send_btn.click(chat_fn, [msg, state, chosen_position_name, interview_application], [chatbot, state])
+        send_btn.click(chat_fn, [msg, state, interview_application], [chatbot, state])
 
 
         # Update the chat section title according to position on change
@@ -241,6 +243,7 @@ with gr.Blocks(css=f"""
     btn_no.click(hide_confirm_modal, outputs=[confirm_modal])
     btn_yes.click(
         end_interview,
+        inputs=[interview_application, state],
         outputs=[interview_chat, chosen_position_name, chosen_position_idx] + interview_btns + [confirm_modal]
     )
 

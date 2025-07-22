@@ -65,17 +65,15 @@ class TechnicalLead(InterviewAgent):
             final_response = self.process_tool_response(
                 response, messages, llm_with_tools
             )
-            return InterviewGraphState(
-                messages=[final_response],
+            return interview_state.create_copy(
+                final_response,
                 generated_question=final_response.content,
-                agent_iterations=interview_state.agent_iterations,
                 last_agent=self.AGENT_NAME
             )
 
         # return in case of calling LLM without tools
-        return InterviewGraphState(
-            messages=[response],
+        return interview_state.create_copy(
+            response,
             generated_question=generated_question,
-            agent_iterations=interview_state.agent_iterations,
             last_agent=self.AGENT_NAME
         )
