@@ -48,7 +48,7 @@ class InterviewManager(InterviewAgent):
             "position_description": self._interview_config.get_position_content(self.chosen_position),
             "candidate_cv": self._interview_config.candidate_cv,
             "answer_from_technical_lead": answer_from_technical_lead,
-            "iterations_with_other_agents": interview_state.agent_iterations
+            "iterations_with_other_agents": len(interview_state.iteration[-1]) # last count of messages
         })
         return interview_state.messages + [SystemMessage(content=system_prompt)]
 
@@ -68,7 +68,8 @@ class InterviewManager(InterviewAgent):
 
         # resolve the next agent
         next_agent = "END"
-        if response.action_to_take == "talking_to_interview_administrator":
+        if response.action_to_take == "talking_to_interview_administrator" and \
+                interview_state.last_agent != InterviewAdministrator.AGENT_NAME:
             next_agent = InterviewAdministrator.AGENT_NAME
         if response.action_to_take == "talking_to_technical_lead":
             next_agent = TechnicalLead.AGENT_NAME

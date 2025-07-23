@@ -67,7 +67,7 @@ class InterviewAgent(ABC):
             return value from callback. Typically, it will be new state
         """
         self.logger.info(f"Invoking agent: {self.__class__.__name__} with state \n {graph_state}")
-        if graph_state.agent_iterations > self.MAX_ALLOWED_ITERATIONS:
+        if len(graph_state.iteration[-1]) > self.MAX_ALLOWED_ITERATIONS:
             raise Exception("The maximal iterations has been reached. Try again")
         result = self.agent_callback_implementation(graph_state)
         self.logger.info(f"Result from agent: {self.__class__.__name__} = \n {result}")

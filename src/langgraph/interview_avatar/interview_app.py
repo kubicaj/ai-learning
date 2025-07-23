@@ -102,10 +102,9 @@ class InterviewApp:
                     message_content=user_message,
                     subject_role="candidate"
                 )
-            ]]
+            ]],
+            session_id=self.session_id
         )
-        # clear iterations per each super step
-        interview_step_state.agent_iterations = 0
         graph_config = {
             "configurable": {
                 "thread_id": self.session_id

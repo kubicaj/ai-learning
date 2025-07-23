@@ -5,20 +5,6 @@ from langgraph.graph import add_messages
 from pydantic import BaseModel
 
 
-def increment_number_by_one(existing_state_number: int | None, new_state_number: int) -> int:
-    """
-    Reducer to increase number in state file
-
-    Args:
-        existing_state_number - state number from previous state
-        new_state_number - state number from current state
-
-    Return:
-        (int) new number
-    """
-    return (new_state_number or 0) + 1
-
-
 def append_historical_iterations(previous_iteration_messages: list | None, new_iteration_messages: list) -> list:
     """
     TODO
@@ -58,10 +44,10 @@ class InterviewGraphState(BaseModel):
     next_agent: Annotated[Optional[str], "Name of last next agent which need to be call"] = None
     # query from candidate. Especially some additional question to interview question
     candidate_query: Annotated[Optional[str], "Query from the user"] = None
-    # agent iterations
-    agent_iterations: Annotated[int, increment_number_by_one] = 0
     # messages accumulation per one human to agent iteration with specific format
     iteration: Annotated[list[list[HumanToAiIteration]], append_historical_iterations] = None
+    # session id
+    session_id: Annotated[str, "id of session"]
 
     def create_copy(self, new_message: dict, last_agent: str = None, next_agent: str = None,
                     generated_question: str = None, interview_manager_message: str = None):
@@ -92,7 +78,6 @@ class InterviewGraphState(BaseModel):
                 subject_role=self.last_agent
             ))
 
-
         return InterviewGraphState(
             messages=[new_message],
             generated_question=self.generated_question if generated_question is None else generated_question,
@@ -101,7 +86,6 @@ class InterviewGraphState(BaseModel):
             last_agent=self.last_agent if last_agent is None else last_agent,
             next_agent=self.next_agent if next_agent is None else next_agent,
             candidate_query=self.candidate_query,
-            agent_iterations=self.agent_iterations,
             iteration=self.iteration
         )
 
@@ -123,6 +107,5 @@ class InterviewGraphState(BaseModel):
             "generated_question": self.generated_question,
             "interview_manager_message": self.interview_manager_message,
             "candidate_query": self.candidate_query,
-            "last_agent": self.last_agent,
-            "agent_iterations": self.agent_iterations
+            "last_agent": self.last_agent
         })

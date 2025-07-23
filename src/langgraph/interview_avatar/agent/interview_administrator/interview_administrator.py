@@ -44,12 +44,10 @@ class InterviewAdministrator(InterviewAgent):
         # ADD next agent as END
         new_state = interview_state.create_copy(
             {"role": "assistant",
-             "content": "Ok, I created the summary and send it to company. "
-                        "Please inform candidate that interview ended "},
+             "content": "Ok, I created the summary and send it to company"},
             last_agent=self.AGENT_NAME,
         )
         return new_state
-
 
     def _send_result_interview(self, interview_state: InterviewGraphState, administrator_output: str):
         """
@@ -63,7 +61,9 @@ class InterviewAdministrator(InterviewAgent):
             [f"[{item.message_time}] <{item.subject_role}> : {item.message_content} \n" for one_iter in
              interview_state.iteration for item in one_iter]
 
-        final_output = (f"## Messages history\n\n {all_message_history} \n\n ## Summary of interview \n\n  "
-                        f"{administrator_output}")
+        final_output = (
+            f"## Interview id \n\n {interview_state.session_id} \n\n## Messages history\n\n {all_message_history} \n\n "
+            f"## Summary of interview \n\n  "
+            f"{administrator_output}")
         # TODO - send email
         self.logger.info(final_output)

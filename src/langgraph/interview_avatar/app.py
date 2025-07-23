@@ -1,3 +1,6 @@
+import asyncio
+import threading
+
 import gradio as gr
 import functools
 
@@ -81,12 +84,22 @@ def hide_confirm_modal():
     return gr.update(visible=False)
 
 
+async def end_interview_app(interview_app: InterviewApp, history: list[dict]):
+
+    # finish it with clear guideline to finish the interview
+    interview_app.invoke_user_query("Finish the interview now", history)
+
 def end_interview(interview_app: InterviewApp, history: list[dict]):
     """
     Return UI state to 'no interview running'. Enable buttons etc.
     """
-    # finish it with clear guideline to finish the interview
-    interview_app.invoke_user_query("Finish the interview now", history)
+    # Wrap your async call in a sync wrapper
+    def async_wrapper():
+        asyncio.run(end_interview_app(interview_app, history))
+
+    # Fire-and-forget style: run in background thread
+    threading.Thread(target=async_wrapper).start()
+
     return (
         gr.update(visible=False),  # interview_chat hidden
         "",  # position name cleared
@@ -193,11 +206,6 @@ with gr.Blocks(css=f"""
         btn_close = gr.Button("Close detail", variant="stop")
     btn_close.click(hide_detail, outputs=[detail_group, detail_md, detail_title])
 
-    # ===== Modal: End-Interview Confirm =====
-    with gr.Group(visible=False) as confirm_modal:
-        confirm_msg = gr.Markdown("Are you sure you want to end the interview?")
-        btn_yes = gr.Button("Yes, end interview", variant="stop")
-        btn_no = gr.Button("No, continue")
 
     # ======== Persistent app state (hidden by default) ========
     interview_chat = gr.Column(visible=False)  # Contains entire chat panel, hidden until interview started
@@ -238,6 +246,12 @@ with gr.Blocks(css=f"""
             outputs=[interview_chat, chosen_position_name, chosen_position_index] + interview_btns + [chatbot, state,
                                                                                                       interview_application]
         )
+
+    # ===== Modal: End-Interview Confirm =====
+    with gr.Group(visible=False) as confirm_modal:
+        confirm_msg = gr.Markdown("Are you sure you want to end the interview?")
+        btn_yes = gr.Button("Yes, end interview", variant="stop")
+        btn_no = gr.Button("No, continue")
 
     # End interview confirmation and finish buttons
     btn_end.click(show_confirm_modal, outputs=[confirm_modal])
