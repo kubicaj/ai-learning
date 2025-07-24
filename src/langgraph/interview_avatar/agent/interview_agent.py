@@ -10,11 +10,15 @@ from langgraph.graph import StateGraph
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import ToolNode, tools_condition
 
-from src.langgraph.interview_avatar.interview_config import InterviewConfig
 from src.langgraph.interview_avatar.pojo.interview_graph_state import InterviewGraphState
 from src.langgraph.interview_avatar.tools.google_search import tool_search_for_interview
 from src.openai.common.logger import init_logger
 
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.langgraph.interview_avatar.interview_app import InterviewApp
 
 class InterviewAgent(ABC):
     """
@@ -23,10 +27,11 @@ class InterviewAgent(ABC):
 
     MAX_ALLOWED_ITERATIONS = 10
 
-    def __init__(self, chosen_position: str = None):
+    def __init__(self, interview_app: "InterviewApp", chosen_position: str = None):
         self.logger = init_logger()
         self.agent_prompt_templates = self.load_agent_prompt()
-        self._interview_config = InterviewConfig.get_active_instance()
+        self.interview_app = interview_app
+        self._interview_config = interview_app.interview_config
         self.chosen_position = chosen_position
 
     @abstractmethod

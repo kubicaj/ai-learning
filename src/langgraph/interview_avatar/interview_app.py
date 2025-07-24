@@ -1,5 +1,4 @@
 import uuid
-from typing import Any
 
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.constants import START, END
@@ -7,11 +6,13 @@ from langgraph.graph import StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 
 from src.langgraph.interview_avatar.agent.interview_administrator.interview_administrator import InterviewAdministrator
+from src.langgraph.interview_avatar.pojo.interview_graph_state import InterviewGraphState, HumanToAiIteration
+from src.openai.common.logger import init_logger
+from src.langgraph.interview_avatar.interview_config import InterviewConfig
+
 from src.langgraph.interview_avatar.agent.interview_agent import InterviewAgent
 from src.langgraph.interview_avatar.agent.interview_manager.interview_manager import InterviewManager
 from src.langgraph.interview_avatar.agent.technical_lead.technical_lead import TechnicalLead
-from src.langgraph.interview_avatar.pojo.interview_graph_state import InterviewGraphState, HumanToAiIteration
-from src.openai.common.logger import init_logger
 
 
 class InterviewApp:
@@ -21,7 +22,7 @@ class InterviewApp:
     """
     TOOLS_AGENT_NAME = "tools"
 
-    def __init__(self, chosen_position: str):
+    def __init__(self, chosen_position: str, cv_content: str):
         """
         Create InterviewOrchestration
 
@@ -29,10 +30,12 @@ class InterviewApp:
             chosen_position (str) - identifier of position which was choosen
         """
         # here init dict of all nodes
+        self.interview_config = InterviewConfig.get_active_instance()
+        self.interview_config.update_candidate_cv(cv_content)
         self.nodes_dict = {
-            InterviewManager.AGENT_NAME: InterviewManager(chosen_position).agent_callback,
-            TechnicalLead.AGENT_NAME: TechnicalLead(chosen_position).agent_callback,
-            InterviewAdministrator.AGENT_NAME: InterviewAdministrator(chosen_position).agent_callback,
+            InterviewManager.AGENT_NAME: InterviewManager(self, chosen_position).agent_callback,
+            TechnicalLead.AGENT_NAME: TechnicalLead(self, chosen_position).agent_callback,
+            InterviewAdministrator.AGENT_NAME: InterviewAdministrator(self, chosen_position).agent_callback,
             self.TOOLS_AGENT_NAME: ToolNode(tools=InterviewAgent.get_tools())
         }
         self.session_id = uuid.uuid4()
@@ -103,7 +106,7 @@ class InterviewApp:
                     subject_role="candidate"
                 )
             ]],
-            session_id=self.session_id
+            session_id=str(self.session_id)
         )
         graph_config = {
             "configurable": {

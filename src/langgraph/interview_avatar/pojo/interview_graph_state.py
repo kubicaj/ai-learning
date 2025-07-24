@@ -86,7 +86,8 @@ class InterviewGraphState(BaseModel):
             last_agent=self.last_agent if last_agent is None else last_agent,
             next_agent=self.next_agent if next_agent is None else next_agent,
             candidate_query=self.candidate_query,
-            iteration=self.iteration
+            iteration=self.iteration,
+            session_id=self.session_id
         )
 
     def get_last_candidate_message(self) -> str:

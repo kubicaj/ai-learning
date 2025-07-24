@@ -5,6 +5,10 @@ from src.langgraph.interview_avatar.agent.interview_agent import InterviewAgent
 from src.langgraph.interview_avatar.pojo.interview_graph_state import InterviewGraphState
 from src.langgraph.llm.llm_factory import LLMFactory
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.langgraph.interview_avatar.interview_app import InterviewApp
 
 class TechnicalLead(InterviewAgent):
     """
@@ -13,13 +17,15 @@ class TechnicalLead(InterviewAgent):
 
     AGENT_NAME = "technical_lead"
 
-    def __init__(self, chosen_position: str = None, number_of_generated_questions: int = 1):
+    def __init__(self, interview_app: "InterviewApp", chosen_position: str = None,
+                 number_of_generated_questions: int = 1):
         """
         Args:
+            interview_app - instance of main interview Application
             number_of_generated_questions - Number of generated questions per one shot
             additional_note_about_task - additional note to the task
         """
-        super().__init__(chosen_position)
+        super().__init__(interview_app, chosen_position)
         self.number_of_generated_questions = number_of_generated_questions
 
     def _create_system_prompt(self, interview_state: InterviewGraphState) -> List[BaseMessage]:

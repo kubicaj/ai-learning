@@ -31,7 +31,7 @@ class OpenPositionDetail(OpenPositionExtract):
 class InterviewConfig:
 
     def __init__(self):
-        self.candidate_cv = self.get_pdf_content("resources/cv_candidate.pdf")
+        self.candidate_cv = ""
         self.all_open_positions = self._get_open_positions()
 
     @staticmethod
@@ -43,6 +43,9 @@ class InterviewConfig:
         if not _singletone_interview_config:
             _singletone_interview_config = InterviewConfig()
         return _singletone_interview_config
+
+    def update_candidate_cv(self, candidate_cv: str):
+        self.candidate_cv = candidate_cv
 
     def _get_open_positions(self) -> dict[str, OpenPositionDetail]:
         """
