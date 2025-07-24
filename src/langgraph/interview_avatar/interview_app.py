@@ -95,7 +95,6 @@ class InterviewApp:
         self._add_edges_with_conditions(graph_builder)
         # add memory for whole session
         self.compiled_graph = graph_builder.compile(checkpointer=MemorySaver())
-        self.compiled_graph.get_graph().draw_mermaid_png(output_file_path="graph.png")
 
     def invoke_user_query(self, user_message: str, history):
         interview_step_state = InterviewGraphState(
